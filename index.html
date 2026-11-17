@@ -380,6 +380,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 .cv-tally .drop { fill: var(--gore); opacity: 0; animation: cvShow .5s 13s ease forwards; }
 .cv-tally .drop.s2 { animation-delay: 9.3s; }
 .cv-sub { margin: 0; font-size: 15px; letter-spacing: .35em; color: var(--paper); text-shadow: 0 0 8px var(--ink), 0 0 2px var(--ink); opacity: 0; animation: cvShow 1.4s 9.6s ease forwards; }
+.cv-hint { position: absolute; top: 12px; left: 0; right: 0; z-index: 1; margin: 0; text-align: center; font-size: 13px; letter-spacing: .3em; color: var(--paper-dim); animation: pulse 1.6s ease-in-out infinite; pointer-events: none; }
 .cv-btns { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 0 6px 18px; opacity: 0; animation: cvShow 1s 10.4s ease forwards; }
 .cv-btns .opt { text-align: center; padding-inline: 28px; animation: none; }
 .cv-btns .opt::before { display: none; }
@@ -482,6 +483,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     <div id="panel"></div>
     <div id="cover" hidden>
       <div class="cv-bg"><img src="img/crack.jpg" alt=""><img class="cv-blink" src="img/crack_closed.jpg" alt=""></div>
+      <p class="cv-hint" id="cvHint">輕觸畫面　開啟聲音</p>
       <div class="cv-mid">
         <svg class="cv-title" viewBox="0 0 300 130" role="img" aria-label="七窟">
           <text x="150" y="104" text-anchor="middle">七窟</text>
@@ -820,6 +822,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
       if (ctx.state !== 'running') ctx.resume();
     } catch (err) { /* no web audio */ }
+    if (e.type === 'click') clicks += 1;
+    if (e.type !== 'pointerdown') $('cvHint').hidden = true;
     if (e.type !== 'pointerdown' && !keepAlive) {
       try {
         keepAlive = new Audio(silentClip());
@@ -832,6 +836,14 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     bgmStart();
   }
   ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, true));
+  /* The cover: music should already be playing while the title animates. Browsers only allow sound after a tap, so
+     try at once (some desktop browsers let it through); otherwise the cover shows a hint and the first tap on it
+     only turns the sound on, without skipping the animation. */
+  let clicks = 0, autoSound = false;
+  try {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'running') { autoSound = true; $('cvHint').hidden = true; bgmStart(); }
+  } catch (err) { /* no web audio */ }
   document.addEventListener('visibilitychange', () => { /* coming back to the page: the phone may have paused the engine */
     if (!document.hidden && ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (err) { /* ignore */ } }
   });
@@ -958,13 +970,13 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       const a = new Audio('voice/' + id + '.mp3');
       if (who === '牆裡的聲音') { a.preservesPitch = false; a.playbackRate = 0.9; }
       if (who === '何太太' && text === '「我昨天才來的。」') {
-        /* her last line comes out wrong: the same recording slowed and dropped in pitch, with a second,
-           even lower copy of it trailing just behind, both kept quiet like a whisper */
+        /* her last line comes out wrong: the same recording slowed and dropped in pitch, doubled by a second copy
+           that is only a hair lower and starts at the same instant, so the two stay together as one thick voice */
         const b = new Audio('voice/' + id + '.mp3');
         [a, b].forEach((x) => { x.preservesPitch = false; x.mozPreservesPitch = false; x.webkitPreservesPitch = false; });
         a.playbackRate = 0.7; a.volume = 0.8;
-        b.playbackRate = 0.52; b.volume = 0.5;
-        setTimeout(() => { if (vAudio === a && !a.paused) { const p = b.play(); if (p && p.catch) p.catch(() => {}); } }, 90);
+        b.playbackRate = 0.685; b.volume = 0.6;
+        const pb = b.play(); if (pb && pb.catch) pb.catch(() => {});
         a.addEventListener('pause', () => { try { b.pause(); } catch (e) { /* ignore */ } });
       }
       const pr = a.play();
@@ -1017,7 +1029,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (key === curKey) { if (effect) fx(effect); return; }
     curKey = key;
     artEl.classList.toggle('fx-flicker', FLICKER.indexOf(key) >= 0);
-    if (key) bgmScene(key);
+    bgmScene(key || ''); /* also when the picture is cleared: with nobody on screen the tune may play again */
     stormUpdate();
     hideFrames();
     const token = ++artToken;
@@ -1237,11 +1249,18 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     e.stopPropagation();
     if (startResolve) { const r = startResolve; startResolve = null; r(); }
   });
-  $('cover').addEventListener('click', (e) => { e.stopPropagation(); $('cover').classList.add('skip'); });
+  $('cover').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (clicks === 1 && !autoSound) return; /* the very first tap only starts the sound */
+    $('cover').classList.add('skip');
+  });
 
   /* ---------- scenes ---------- */
   async function opening() {
     clear(); art(null); setWhen('七窟'); setGoal('');
+    /* back at the cover (first time or after "play again"): the music is the plain tune again, from its first note */
+    bgmHaunt = false; bgmHush = false; bgmDeep = false; bgmMode = 'tune'; bgmLevel = 0.4;
+    if (bgm) { bgm.i = 0; bgm.pos = 0; }
     const cover = $('cover');
     cover.classList.remove('skip');
     cover.hidden = false;
@@ -1256,10 +1275,17 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     audio();
     clear();
     setBox('title', '第一晚　敲四下');
+    /* the rhyme is spoken as it appears (clips made by tools/gen_narration.py; they follow the 人聲 switch) */
+    const speak = (name) => {
+      if (!voiceOn) return;
+      try { const a = new Audio('voice/' + name + '.mp3'); const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
+    };
     bigText('人敲三，');
-    await sleep(1700);
+    speak('n_knock3');
+    await sleep(2000);
     bigText('鬼敲四。');
-    await sleep(1900);
+    speak('n_knock4');
+    await sleep(2300);
     bigText('');
     await knock(4, 0.55);
   }
