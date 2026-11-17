@@ -593,14 +593,19 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (!a) return;
     /* a hard knock on a heavy wooden door: the crack of knuckles (a very short burst of noise),
        the door panel ringing at a few fixed pitches that die away fast, and a low thump from the frame */
-    const t = a.currentTime, loud = Math.min(0.8, vol * 1.45), out = a.createGain();
-    out.gain.value = loud; out.connect(a.destination);
+    /* The peak cannot go past full scale, so the knock is made louder by weight instead: it is driven hard into a
+       soft limiter (denser, about twice the energy) and rings a little longer. */
+    const t = a.currentTime, loud = Math.min(0.8, vol * 1.45), out = a.createGain(), lim = a.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let i = 0; i < 1024; i++) curve[i] = Math.tanh((i / 511.5 - 1) * 2.4) * 0.97;
+    lim.curve = curve;
+    out.gain.value = loud * 2.4; out.connect(lim); lim.connect(a.destination);
     const len = Math.floor(a.sampleRate * 0.05), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
     const src = a.createBufferSource(), bp = a.createBiquadFilter(), ng = a.createGain();
     bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.8; ng.gain.value = 0.55;
     src.buffer = buf; src.connect(bp); bp.connect(ng); ng.connect(out); src.start(t);
-    [[176, 0.42, 0.13], [287, 0.3, 0.09], [431, 0.16, 0.06], [655, 0.07, 0.04]].forEach((m) => {
+    [[176, 0.42, 0.2], [287, 0.3, 0.14], [431, 0.18, 0.09], [655, 0.09, 0.06]].forEach((m) => {
       const o = a.createOscillator(), g = a.createGain();
       o.type = 'sine'; o.frequency.value = m[0] * (0.97 + Math.random() * 0.06);
       g.gain.setValueAtTime(m[1], t);
