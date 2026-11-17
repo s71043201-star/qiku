@@ -601,7 +601,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
        soft limiter (denser, about twice the energy) and rings a little longer. */
     const t = a.currentTime, loud = Math.min(0.8, vol * 1.45), out = a.createGain(), lim = a.createWaveShaper();
     const curve = new Float32Array(1024);
-    for (let i = 0; i < 1024; i++) curve[i] = Math.tanh((i / 511.5 - 1) * 2.4) * 0.97;
+    for (let i = 0; i < 1024; i++) curve[i] = Math.tanh((i / 511.5 - 1) * 2.4) * 0.85;
     lim.curve = curve;
     out.gain.value = loud * 2.4; out.connect(lim); lim.connect(a.destination);
     const len = Math.floor(a.sampleRate * 0.05), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
@@ -801,8 +801,40 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     bgmLevel = bgmDeep ? 1 : BGM_NIGHT.indexOf(key) >= 0 ? 0.7 : 0.4;
     bgmApply(3);
   }
-  document.addEventListener('pointerdown', bgmStart);
-  document.addEventListener('keydown', bgmStart);
+  /* Phones. The synthesised sound (music, knocks, rain) needs two things that the recorded voices do not:
+     1. the sound engine has to be started from inside a real tap (touchend / click; an iPhone ignores pointerdown);
+     2. an iPhone with its ring/silent switch on "silent" mutes synthesised sound but not ordinary audio. Telling the
+        system this page is "playback", and keeping a silent ordinary audio clip looping, lets it through. */
+  let keepAlive = null;
+  function silentClip() {
+    const n = 4000, b = new Uint8Array(44 + n), v = new DataView(b.buffer), s = (o, t) => { for (let i = 0; i < t.length; i++) b[o + i] = t.charCodeAt(i); };
+    s(0, 'RIFF'); v.setUint32(4, 36 + n, true); s(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); s(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) b[44 + i] = 128;
+    let bin = ''; for (let i = 0; i < b.length; i++) bin += String.fromCharCode(b[i]);
+    return 'data:audio/wav;base64,' + btoa(bin);
+  }
+  function unlock(e) {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (err) { /* not supported */ }
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state !== 'running') ctx.resume();
+    } catch (err) { /* no web audio */ }
+    if (e.type !== 'pointerdown' && !keepAlive) {
+      try {
+        keepAlive = new Audio(silentClip());
+        keepAlive.loop = true; keepAlive.setAttribute('playsinline', '');
+        const p = keepAlive.play(); if (p && p.catch) p.catch(() => { keepAlive = null; });
+        const b = ctx.createBuffer(1, 1, 22050), src = ctx.createBufferSource();
+        src.buffer = b; src.connect(ctx.destination); src.start(0);
+      } catch (err) { keepAlive = null; }
+    }
+    bgmStart();
+  }
+  ['pointerdown', 'touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, true));
+  document.addEventListener('visibilitychange', () => { /* coming back to the page: the phone may have paused the engine */
+    if (!document.hidden && ctx && ctx.state !== 'running') { try { ctx.resume(); } catch (err) { /* ignore */ } }
+  });
   /* ---------- night storm (synthesised) ----------
      At night it pours: steady rain, and every so often lightning and thunder. The storm follows the clock label
      (夜晚 / 深夜). Underground it is only a muffled rumble; inside the dream it almost disappears.
