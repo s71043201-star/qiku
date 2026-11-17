@@ -1,0 +1,1579 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>:root{color-scheme:light;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body><title>七窟</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&family=Noto+Serif+TC:wght@400;600;900&family=Zen+Antique&display=swap">
+<style>
+/* Layout: one phone-sized stage. The scratchboard picture fills the stage; a dialogue box sits over its lower edge,
+   with the speaker's name on a tab and choices stacked just above it.
+   Single dark look on purpose: everything is scratched out of black. */
+:root {
+  color-scheme: dark;
+  --ink: #0b0a09;
+  --ink-2: #16130f;
+  --paper: #e9dfc8;
+  --paper-dim: #a2977f;
+  --blood: #a13a2f;
+  --gore: #b3140f;
+  --gore-dark: #5e0907;
+  --rule: #2e2922;
+  --page: #e2d5b6;
+  --page-ink: #2a231c;
+  --serif: "Noto Serif TC", "PMingLiU", "Songti TC", serif;
+  --display: "Zen Antique", "Noto Serif TC", "PMingLiU", serif;
+  --hand: "LXGW WenKai TC", "DFKai-SB", "BiauKai", "Noto Serif TC", serif;
+}
+html, body { height: 100%; }
+body {
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.75;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
+
+#app {
+  box-sizing: border-box;
+  height: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 8px 12px;
+  gap: 8px;
+}
+#app.shake { animation: shake .28s linear; }
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3px, 2px); }
+  50% { transform: translate(3px, -2px); }
+  75% { transform: translate(-2px, -1px); }
+}
+
+#bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 13px;
+  letter-spacing: .12em;
+  color: var(--paper-dim);
+}
+#bar .grow { flex: 1; min-width: 0; }
+.chip {
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 4px 9px;
+  min-height: 32px;
+  font-size: 13px;
+  letter-spacing: .06em;
+  color: var(--paper-dim);
+  cursor: pointer;
+}
+.chip:hover { color: var(--paper); border-color: var(--paper-dim); }
+.chip.new { color: var(--paper); border-color: var(--blood); }
+
+#goal {
+  font-size: 13px;
+  line-height: 1.5;
+  letter-spacing: .08em;
+  color: var(--paper);
+  padding: 3px 10px;
+  border-left: 2px solid var(--blood);
+  background: var(--ink-2);
+}
+#txt.tip { color: var(--paper); font-family: var(--hand); font-size: 17px; }
+#stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  cursor: pointer;
+  background:
+    repeating-linear-gradient(118deg, transparent 0 7px, rgba(233, 223, 200, .03) 7px 8px),
+    var(--ink);
+  border-top: 1px solid var(--rule);
+}
+#art {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  bottom: 158px;
+}
+#art img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 50%;
+  opacity: 0;
+  transition: opacity .6s ease;
+}
+#art img.on { opacity: 1; }
+/* pictures stay still; only a short flash on a few shocks. Characters move through extra frames (blink, mouth). */
+#art { transform-origin: 50% 35%; isolation: isolate; } /* isolate: the blink / mouth frames never paint over the text box */
+/* a failing fluorescent tube: the picture dips in brightness at uneven moments (pictures listed in FLICKER) */
+#art.fx-flicker { animation: flicker 5.3s steps(1) infinite; }
+@keyframes flicker {
+  0% { filter: brightness(1); } 7% { filter: brightness(.72); } 8.5% { filter: brightness(1); } 10% { filter: brightness(.8); }
+  11% { filter: brightness(1); } 38% { filter: brightness(.86); } 39% { filter: brightness(1); } 61% { filter: brightness(.68); }
+  63% { filter: brightness(.95); } 64% { filter: brightness(.74); } 66% { filter: brightness(1); } 88% { filter: brightness(.84); }
+  89.5% { filter: brightness(1); } 100% { filter: brightness(1); }
+}
+#art.fx-shock { animation: shock .5s cubic-bezier(.2, .9, .3, 1); }
+@keyframes shock { 0% { scale: 1.08; filter: brightness(1.7); } 100% { scale: 1; filter: brightness(1); } }
+#art img.frame { transition: opacity .07s ease-out; z-index: 1; }
+#stage::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: .09;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain .9s steps(5) infinite;
+}
+@keyframes grain { 0% { translate: 0 0; } 20% { translate: -6% 4%; } 40% { translate: 5% -7%; } 60% { translate: -3% -5%; } 80% { translate: 7% 6%; } 100% { translate: 0 0; } }
+#art::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 8%;
+  background: linear-gradient(to bottom, transparent, var(--ink));
+  pointer-events: none;
+  z-index: 2; /* above the blink / mouth frames, so the fade over the text box never flickers */
+}
+#big {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 34px;
+  letter-spacing: .3em;
+  pointer-events: none;
+}
+#big .knock {
+  position: absolute;
+  font-size: 54px;
+  letter-spacing: 0;
+  animation: knock .5s ease-out forwards;
+}
+@keyframes knock {
+  0% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(1); }
+}
+#tally {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 56%;
+  background: rgba(11, 10, 9, .8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#tally svg { width: min(78%, 300px); height: auto; }
+#tally line { stroke: var(--paper); stroke-width: 3.2; stroke-linecap: round; }
+#tally line.new {
+  stroke: var(--blood);
+  stroke-dasharray: 70;
+  stroke-dashoffset: 70;
+  animation: carve 2.6s .5s ease-in forwards;
+}
+@keyframes carve { to { stroke-dashoffset: 0; } }
+
+#panel {
+  position: absolute;
+  top: 10px; left: 8px; right: 8px;
+  max-height: 58%;
+  overflow-y: auto;
+  z-index: 2;
+}
+
+#lower {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 3;
+}
+#choices { display: flex; flex-direction: column; gap: 7px; padding-inline: 6px; overflow-y: auto; overflow-x: hidden; min-height: 0; scrollbar-width: none; }
+.opt {
+  position: relative;
+  background: linear-gradient(90deg, rgba(22, 19, 15, 0), rgba(22, 19, 15, .92) 12%, rgba(22, 19, 15, .92) 88%, rgba(22, 19, 15, 0));
+  border: none;
+  padding: 9px 28px 9px 40px;
+  min-height: 46px;
+  text-align: left;
+  font-family: var(--hand);
+  font-size: 18px;
+  line-height: 1.45;
+  color: var(--paper);
+  cursor: pointer;
+  animation: rise .45s ease both;
+  transition: transform .2s ease;
+}
+.opt::before {
+  content: "";
+  position: absolute;
+  left: 18px; top: 50%;
+  width: 11px; height: 2px;
+  background: var(--blood);
+  transform: rotate(-14deg);
+  transition: width .2s ease;
+}
+.opt::after {
+  content: "";
+  position: absolute;
+  left: 9%; right: 9%; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--rule) 18%, var(--rule) 82%, transparent);
+}
+.opt:nth-child(2) { animation-delay: .07s; }
+.opt:nth-child(3) { animation-delay: .14s; }
+.opt:nth-child(4) { animation-delay: .21s; }
+.opt:nth-child(5) { animation-delay: .28s; }
+.opt:nth-child(6) { animation-delay: .35s; }
+.opt:hover, .opt:focus-visible { transform: translateX(5px); }
+.opt:hover::before, .opt:focus-visible::before { width: 18px; }
+.opt small { color: var(--paper-dim); font-size: 14px; margin-left: 10px; }
+@keyframes rise { from { opacity: 0; transform: translateY(5px); } }
+
+#dlg {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: 158px;
+  box-sizing: border-box;
+  padding: 42px 16px 28px;
+  background: linear-gradient(to bottom, rgba(11, 10, 9, 0), rgba(11, 10, 9, .92) 30px, rgba(11, 10, 9, .97));
+}
+#dlg::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 30px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--paper-dim) 10%, var(--rule) 65%, transparent);
+}
+#who {
+  position: absolute;
+  top: 3px; left: 16px;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: .28em;
+  color: var(--paper);
+}
+#who::before {
+  content: "";
+  display: inline-block;
+  width: 7px; height: 7px;
+  margin-right: 10px;
+  background: var(--blood);
+  transform: rotate(45deg);
+  vertical-align: 2px;
+}
+#txt { margin: 0; min-height: 3.6em; font-size: 18px; line-height: 1.8; letter-spacing: .03em; text-wrap: pretty; line-break: strict; }
+#txt.say, #txt.it { padding-left: .55em; text-indent: -.55em; }
+#txt.narr { color: var(--paper-dim); }
+#txt.say, #txt.it { color: var(--paper); }
+#txt.it { font-weight: 900; letter-spacing: .08em; }
+#txt.title { text-align: center; font-family: var(--display); font-size: 20px; letter-spacing: .4em; color: var(--paper-dim); padding-top: .4em; }
+#next {
+  position: absolute;
+  right: 6px; bottom: 0;
+  background: none;
+  border: none;
+  min-width: 44px;
+  min-height: 30px;
+  font-size: 12px;
+  color: var(--paper-dim);
+  cursor: pointer;
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: .25; transform: translateY(2px); } }
+
+.paper {
+  background: var(--page);
+  color: var(--page-ink);
+  font-family: var(--hand);
+  font-size: 17px;
+  line-height: 2;
+  padding: 10px 14px 14px;
+  border-radius: 1px;
+  background-image: repeating-linear-gradient(transparent 0 33px, rgba(42, 35, 28, .16) 33px 34px);
+  background-position: 0 9px;
+  transform: rotate(-.6deg);
+  animation: rise .5s ease both;
+}
+.paper div { min-height: 34px; overflow-wrap: anywhere; }
+.paper .gone {
+  display: inline-block;
+  width: 6.5em;
+  height: 1em;
+  vertical-align: -0.12em;
+  background:
+    repeating-linear-gradient(98deg, var(--page-ink) 0 3px, transparent 3px 5px),
+    repeating-linear-gradient(82deg, var(--page-ink) 0 2px, transparent 2px 6px);
+  border-radius: 2px;
+}
+.paper .mine {
+  background-image: linear-gradient(var(--page-ink), var(--page-ink));
+  background-repeat: no-repeat;
+  background-position: 0 55%;
+  background-size: 0% .95em;
+}
+.paper .mine.struck { animation: strike 2.2s .8s ease-in forwards; }
+@keyframes strike { to { background-size: 100% .95em; } }
+.paper .faint { opacity: .55; font-size: 15px; }
+
+/* animated cover: the wall crack drifts in, the title is scratched out stroke by stroke, then seven marks */
+#cover { position: absolute; inset: 0; z-index: 6; background: var(--ink); display: flex; flex-direction: column; overflow: hidden; }
+.cv-bg {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0;
+  animation: cvIn 3.2s ease-out forwards, cvDrift 16s ease-out forwards, cvFlicker 7s 4s steps(1) infinite;
+}
+@keyframes cvIn { to { opacity: .5; } }
+.cv-bg img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 60% 70%; }
+.cv-blink { opacity: 0; animation: cvBlink 6.5s 11s infinite; }
+@keyframes cvBlink { 0%, 90% { opacity: 0; } 92.5%, 95.5% { opacity: 1; } 98%, 100% { opacity: 0; } }
+@keyframes cvDrift { from { transform: scale(1.25); } to { transform: scale(1); } }
+@keyframes cvFlicker { 0%, 100% { filter: brightness(1); } 46% { filter: brightness(.35); } 48% { filter: brightness(1); } 52% { filter: brightness(.2); } 55% { filter: brightness(1); } }
+.cv-mid { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding-inline: 12px; }
+.cv-title { width: min(78%, 300px); height: auto; overflow: visible; }
+.cv-title text {
+  font-family: var(--display); font-size: 96px; letter-spacing: 12px;
+  fill: var(--paper); fill-opacity: 0;
+  stroke: var(--paper); stroke-width: 1.2;
+  stroke-dasharray: 900; stroke-dashoffset: 900;
+  animation: cvStroke 3.4s 1.2s ease-in forwards, cvFill 1.4s 4.2s ease forwards;
+}
+@keyframes cvStroke { to { stroke-dashoffset: 0; } }
+@keyframes cvFill { to { fill-opacity: 1; } }
+.cv-tally { width: min(52%, 200px); height: auto; }
+.cv-tally line { stroke: var(--paper); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; animation: cvStroke .3s ease-in forwards; }
+.cv-tally line:nth-of-type(1) { animation-delay: 5.4s; }
+.cv-tally line:nth-of-type(2) { animation-delay: 5.75s; }
+.cv-tally line:nth-of-type(3) { animation-delay: 6.1s; }
+.cv-tally line:nth-of-type(4) { animation-delay: 6.45s; }
+.cv-tally line:nth-of-type(5) { animation-delay: 6.8s; }
+.cv-tally line:nth-of-type(6) { animation-delay: 7.25s; }
+.cv-tally path { fill: none; stroke: var(--gore); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.cv-tally .seven { stroke-width: 5; animation: cvStroke 1.1s 8.3s ease-in forwards; filter: drop-shadow(0 0 3px var(--gore-dark)); }
+.cv-tally .seven.thin { stroke-width: 2.2; stroke: var(--gore-dark); animation-delay: 8.45s; }
+.cv-tally .drip { stroke-width: 2.6; animation: cvStroke 3.8s 9.5s ease-out forwards; }
+.cv-tally .drip.d2 { stroke-width: 1.7; animation-duration: 3.2s; animation-delay: 10s; }
+.cv-tally .drip.d3 { stroke-width: 1.4; animation-duration: 2.6s; animation-delay: 9.8s; }
+.cv-tally .drop { fill: var(--gore); opacity: 0; animation: cvShow .5s 13s ease forwards; }
+.cv-tally .drop.s2 { animation-delay: 9.3s; }
+.cv-sub { margin: 0; font-size: 15px; letter-spacing: .35em; color: var(--paper); text-shadow: 0 0 8px var(--ink), 0 0 2px var(--ink); opacity: 0; animation: cvShow 1.4s 9.6s ease forwards; }
+.cv-btns { position: relative; display: flex; flex-direction: column; gap: 8px; padding: 0 6px 18px; opacity: 0; animation: cvShow 1s 10.4s ease forwards; }
+.cv-btns .opt { text-align: center; padding-inline: 28px; animation: none; }
+.cv-btns .opt::before { display: none; }
+@keyframes cvShow { to { opacity: 1; } }
+#cover.skip *:not(.cv-blink) { animation-duration: .01s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; }
+
+.guide { width: 100%; max-width: 460px; }
+.setrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+.setrow small { display: block; font-size: 13px; color: var(--paper-dim); }
+.setrow .chip { min-width: 56px; min-height: 40px; color: var(--paper); }
+.setrow .chip[aria-pressed="false"] { color: var(--paper-dim); }
+.guide h2 { margin: 0 0 10px; font-size: 15px; font-weight: 400; letter-spacing: .4em; text-align: center; color: var(--paper-dim); }
+.guide .lead { margin: 0 0 14px; color: var(--paper); }
+.guide dl { margin: 0; display: flex; flex-direction: column; gap: 2px; }
+.guide dt { color: var(--paper); font-weight: 700; letter-spacing: .08em; padding-left: 10px; border-left: 2px solid var(--blood); margin-top: 10px; }
+.guide dd { margin: 0; padding-left: 12px; color: var(--paper-dim); font-size: 15px; }
+
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 6px 18px; }
+.photo {
+  background: var(--page);
+  border: none;
+  border-radius: 1px;
+  padding: 5px 5px 2px;
+  min-width: 0;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .7);
+  animation: rise .5s ease both;
+}
+.photo:nth-child(1) { transform: rotate(-4deg); }
+.photo:nth-child(2) { transform: rotate(2deg) translateY(10px); animation-delay: .12s; }
+.photo:nth-child(3) { transform: rotate(-1.5deg); animation-delay: .24s; }
+.photo:hover, .photo:focus-visible { outline: 2px solid var(--blood); outline-offset: 2px; }
+.photo img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.photo span { display: block; font-family: var(--hand); font-size: 13px; line-height: 1.7; color: var(--page-ink); text-align: center; }
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(11, 10, 9, .94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  overflow-y: auto;
+  padding-top: calc(24px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.sheet .paper, #histList { width: 100%; max-width: 460px; }
+#histList { display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+#histList p { margin: 0; color: var(--paper-dim); }
+#histList p.say, #histList p.it { color: var(--paper); }
+#histList p.you { padding-left: 12px; border-left: 2px solid var(--blood); }
+#histList b { display: block; font-size: 12px; font-weight: 400; letter-spacing: .2em; color: var(--blood); }
+
+.end {
+  background: rgba(11, 10, 9, .86);
+  border: 1px solid var(--rule);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 15px;
+}
+.end h2 { margin: 0 0 6px; font-size: 15px; font-weight: 400; letter-spacing: .4em; text-align: center; color: var(--paper-dim); }
+.end b { color: var(--paper); letter-spacing: .1em; }
+.end span { color: var(--paper-dim); }
+
+@media (prefers-reduced-motion: reduce) {
+  #app.shake, #next, .opt, .paper { animation: none; }
+  #tally line.new { animation-duration: .01s; }
+  .paper .mine.struck { animation-duration: .01s; }
+  #art img { transition: none; }
+  #art.fx-flicker { animation: none; }
+  #stage::after { animation: none; }
+}
+</style>
+
+<div id="app">
+  <div id="bar">
+    <span id="when">七窟</span>
+    <span class="grow"></span>
+    <button class="chip" id="guideBtn" type="button">說明</button>
+    <button class="chip" id="histBtn" type="button">回顧</button>
+    <button class="chip" id="bookBtn" type="button" hidden>筆記本</button>
+    <button class="chip" id="sndBtn" type="button">聲音</button>
+  </div>
+  <div id="goal" hidden></div>
+  <div id="stage">
+    <div id="art" aria-hidden="true">
+      <img id="imgA" alt="">
+      <img id="imgB" alt="">
+      <img id="imgBlink" class="frame" alt="">
+      <img id="imgMouth" class="frame" alt="">
+    </div>
+    <div id="tally" hidden></div>
+    <div id="big" aria-hidden="true"></div>
+    <div id="panel"></div>
+    <div id="cover" hidden>
+      <div class="cv-bg"><img src="img/crack.jpg" alt=""><img class="cv-blink" src="img/crack_closed.jpg" alt=""></div>
+      <div class="cv-mid">
+        <svg class="cv-title" viewBox="0 0 300 130" role="img" aria-label="七窟">
+          <text x="150" y="104" text-anchor="middle">七窟</text>
+        </svg>
+        <svg class="cv-tally" viewBox="0 0 220 104" aria-hidden="true">
+          <defs><filter id="rough" x="-30%" y="-10%" width="160%" height="130%"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="2" seed="7" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="2.6"/></filter></defs>
+          <line x1="30" y1="10" x2="32" y2="54"/>
+          <line x1="50" y1="12" x2="51" y2="54"/>
+          <line x1="70" y1="10" x2="69" y2="54"/>
+          <line x1="90" y1="12" x2="91" y2="54"/>
+          <line x1="18" y1="46" x2="104" y2="18"/>
+          <line x1="130" y1="10" x2="132" y2="54"/>
+          <g filter="url(#rough)">
+            <path class="seven" d="M155 7 C152 20 154 38 150 58"/>
+            <path class="seven thin" d="M156.5 10 C155 24 155.5 34 153 50"/>
+            <path class="drip" d="M150.5 57 C150.8 68 149.8 78 150.4 92"/>
+            <path class="drip d2" d="M153.6 34 C154.2 44 153.4 52 154 66"/>
+            <path class="drip d3" d="M149 52 C147.4 58 147 63 147.2 72"/>
+            <circle class="drop" cx="150.4" cy="95" r="2.6"/>
+            <circle class="drop" cx="154" cy="69" r="1.7"/>
+            <circle class="drop s2" cx="161" cy="22" r="1.1"/>
+            <circle class="drop s2" cx="144" cy="40" r=".9"/>
+            <circle class="drop s2" cx="159" cy="47" r=".7"/>
+          </g>
+        </svg>
+        <p class="cv-sub">第七次，你還記得嗎？</p>
+      </div>
+      <div class="cv-btns">
+        <button class="opt" id="startBtn" type="button">開始遊戲</button>
+        <button class="opt" id="howBtn" type="button">遊玩說明</button>
+      </div>
+    </div>
+    <div id="lower">
+      <div id="choices"></div>
+      <div id="dlg" aria-live="polite">
+        <span id="who" hidden></span>
+        <p id="txt"></p>
+        <button id="next" type="button" aria-label="繼續" hidden>▼</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="sheet" id="book" hidden>
+  <div class="paper" id="bookPage"></div>
+  <button class="chip" id="bookClose" type="button">闔上筆記本</button>
+</div>
+<div class="sheet" id="guide" hidden>
+  <div class="guide">
+    <h2>遊玩說明</h2>
+    <p class="lead">你是一位 65 歲的獨居老人，剛被送進七窟安養院。這裡的每個人都忘了一些事。你要在五個晚上之內，找出他們忘了什麼。</p>
+    <dl>
+      <dt>點畫面繼續</dt>
+      <dd>點一下顯示下一句。出現選項時，你的選擇會改變之後發生的事。</dd>
+      <dt>白天：找人說話</dt>
+      <dd>一天只能去三個地方。每位住民記得的事不一樣，也不一定可靠。</dd>
+      <dt>下午：懷舊治療</dt>
+      <dd>高老師會帶大家看老照片、聊往事。想說什麼、說多少，由你決定。</dd>
+      <dt>傍晚：那顆藥</dt>
+      <dd>護理長每天傍晚發藥。吃或不吃，由你決定，兩種選擇都有代價。</dd>
+      <dt>筆記本</dt>
+      <dd>聽到的事會記進筆記本，右上角可以隨時翻開。但筆記不一定都是你寫的。</dd>
+      <dt>回顧</dt>
+      <dd>漏看的對話，可以從右上角「回顧」找回來。</dd>
+    </dl>
+  </div>
+  <button class="chip" id="guideClose" type="button">我知道了</button>
+</div>
+<div class="sheet" id="snd" hidden>
+  <div class="guide">
+    <h2>聲音設定</h2>
+    <div class="setrow"><span>人聲<small>角色說話的語音</small></span><button class="chip" id="voiceTog" type="button">開</button></div>
+    <div class="setrow"><span>環境聲<small>敲擊聲、刮牆聲</small></span><button class="chip" id="sfxTog" type="button">開</button></div>
+    <div class="setrow"><span>背景音樂<small>音樂盒的旋律</small></span><button class="chip" id="bgmTog" type="button">開</button></div>
+  </div>
+  <button class="chip" id="sndClose" type="button">完成</button>
+</div>
+<div class="sheet" id="hist" hidden>
+  <div id="histList"></div>
+  <button class="chip" id="histClose" type="button">回到故事</button>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  const app = $('app'), stage = $('stage'), choices = $('choices'), nextBtn = $('next');
+  const big = $('big'), tally = $('tally'), when = $('when'), panel = $('panel');
+  const whoEl = $('who'), txt = $('txt');
+  const imgs = [$('imgA'), $('imgB')], blinkImg = $('imgBlink');
+  const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let S, history = [];
+  function reset() {
+    S = { alert: 0, trust: 0, took: false, went: false, met: false, answered: '', left: false,
+          notes: [], mine: '', hasBook: false, struck: false, seen: {} };
+    history = [];
+  }
+
+  /* ---------- sound ---------- */
+  let ctx = null, sfxOn = true, voiceOn = true;
+  try { sfxOn = localStorage.getItem('qiku_sfx') !== '0'; voiceOn = localStorage.getItem('qiku_voice') !== '0'; } catch (e) { /* storage unavailable */ }
+  function audio() {
+    if (!sfxOn) return null;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { ctx = null; }
+    return ctx;
+  }
+  function thud(vol) {
+    const a = audio();
+    if (!a) return;
+    /* a hard knock on a heavy wooden door: the crack of knuckles (a very short burst of noise),
+       the door panel ringing at a few fixed pitches that die away fast, and a low thump from the frame */
+    const t = a.currentTime, loud = Math.min(0.8, vol * 1.45), out = a.createGain();
+    out.gain.value = loud; out.connect(a.destination);
+    const len = Math.floor(a.sampleRate * 0.05), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 4);
+    const src = a.createBufferSource(), bp = a.createBiquadFilter(), ng = a.createGain();
+    bp.type = 'bandpass'; bp.frequency.value = 1100; bp.Q.value = 0.8; ng.gain.value = 0.55;
+    src.buffer = buf; src.connect(bp); bp.connect(ng); ng.connect(out); src.start(t);
+    [[176, 0.42, 0.13], [287, 0.3, 0.09], [431, 0.16, 0.06], [655, 0.07, 0.04]].forEach((m) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = m[0] * (0.97 + Math.random() * 0.06);
+      g.gain.setValueAtTime(m[1], t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + m[2]);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + m[2] + 0.02);
+    });
+    const o = a.createOscillator(), g = a.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.12);
+    g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.22);
+  }
+  /* picking an option sounds like a gun being cocked: the slide pulled back (a click and a short metal scrape),
+     then let go and slamming home (a heavier click with a brief metallic ring) */
+  function clack() {
+    const a = audio();
+    if (!a) return;
+    const t = a.currentTime;
+    const burst = (when, secs, freq, q, vol, curve) => {
+      const len = Math.floor(a.sampleRate * secs), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, curve);
+      const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
+      src.buffer = buf; src.connect(f); f.connect(g); g.connect(a.destination); src.start(when);
+    };
+    const ring = (when, freq, vol, secs) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'triangle'; o.frequency.value = freq;
+      g.gain.setValueAtTime(vol, when); g.gain.exponentialRampToValueAtTime(0.001, when + secs);
+      o.connect(g); g.connect(a.destination); o.start(when); o.stop(when + secs + 0.02);
+    };
+    burst(t, 0.022, 3200, 1.5, 0.5, 3); ring(t, 2450, 0.07, 0.03);          /* slide starts back */
+    burst(t + 0.02, 0.085, 4200, 0.7, 0.13, 1);                             /* metal sliding on metal */
+    burst(t + 0.125, 0.04, 1700, 1.1, 0.75, 3); burst(t + 0.125, 0.02, 5200, 1, 0.3, 4); /* slams home */
+    ring(t + 0.125, 1850, 0.11, 0.07); ring(t + 0.125, 3100, 0.06, 0.05); ring(t + 0.125, 240, 0.25, 0.06);
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('.opt, .photo')) clack(); }, true);
+  function scrape() {
+    const a = audio();
+    if (!a) return;
+    const len = Math.floor(a.sampleRate * 2.4), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (0.5 + 0.5 * Math.sin(i / 900));
+    const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(), t = a.currentTime;
+    f.type = 'bandpass'; f.frequency.value = 2600; f.Q.value = 3;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.07, t + 0.3);
+    g.gain.linearRampToValueAtTime(0.0001, t + 2.4);
+    src.buffer = buf; src.connect(f); f.connect(g); g.connect(a.destination);
+    src.start(t);
+  }
+  function showSound() {
+    $('voiceTog').textContent = voiceOn ? '開' : '關';
+    $('voiceTog').setAttribute('aria-pressed', String(voiceOn));
+    $('sfxTog').textContent = sfxOn ? '開' : '關';
+    $('sfxTog').setAttribute('aria-pressed', String(sfxOn));
+    $('bgmTog').textContent = bgmOn ? '開' : '關';
+    $('bgmTog').setAttribute('aria-pressed', String(bgmOn));
+  }
+  function saveSound() {
+    try { localStorage.setItem('qiku_sfx', sfxOn ? '1' : '0'); localStorage.setItem('qiku_voice', voiceOn ? '1' : '0'); localStorage.setItem('qiku_bgm', bgmOn ? '1' : '0'); } catch (e) { /* storage unavailable */ }
+  }
+
+  /* ---------- background music (synthesised, no audio file) ----------
+     A music-box tune that changes with the scene. Starts on the player's first tap. */
+  let bgmOn = true, bgm = null, bgmLevel = 0.4, bgmDeep = false, bgmMode = 'tune';
+  try { bgmOn = localStorage.getItem('qiku_bgm') !== '0'; } catch (e) { /* storage unavailable */ }
+  const BGM_DEEP = ['basement', 'dream', 'finger', 'finger_a', 'finger_b', 'scar', 'crack', 'crack_closed'];
+  const BGM_NIGHT = ['room', 'pill', 'notebook', 'wang', 'nurse2', 'he2', 'lan2', 'zhou2', 'wu2', 'xiu2', 'mu2', 'chen2', 'gao2'];
+  function bgmApply(secs) {
+    if (!bgm) return;
+    const t = bgm.a.currentTime;
+    bgm.master.gain.cancelScheduledValues(t);
+    bgm.master.gain.setTargetAtTime(bgmOn ? 0.4 : 0, t, secs / 3);
+  }
+  /* The tune: an original, slow music-box lullaby on a five-note minor scale (A C D E G), four phrases of 12 beats.
+     Each entry is [semitones above A4, length in beats]; null is a rest. A low note marks the start and middle of each phrase.
+     Day: plain. Night: slower. Underground: slower again, an octave lower, and some notes sag a quarter-tone flat. */
+  const BGM_TUNE = [[7, 1], [5, 1], [3, 1], [0, 2], [null, 1], [3, 1], [5, 1], [7, 2], [null, 2],
+    [10, 1], [7, 1], [5, 1], [3, 2], [null, 1], [5, 1], [3, 1], [0, 2], [null, 2],
+    [7, 1], [10, 1], [7, 1], [5, 2], [null, 1], [3, 1], [0, 1], [3, 2], [null, 2],
+    [5, 1], [3, 1], [0, 1], [-2, 2], [null, 1], [0, 3], [null, 3]];
+  const BGM_BASS = [-24, -28, -21, -29];
+  function bgmNote(semis, when, vol, long) {
+    const a = bgm.a, f = 440 * Math.pow(2, semis / 12);
+    [[1, 1], [2, 0.28], [3.01, 0.09]].forEach((p) => { /* a struck metal comb: the overtones die away sooner than the note */
+      const o = a.createOscillator(), g = a.createGain(), end = when + long / p[0];
+      o.type = 'sine'; o.frequency.value = f * p[0];
+      g.gain.setValueAtTime(0.0001, when);
+      g.gain.exponentialRampToValueAtTime(vol * p[1], when + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, end);
+      o.connect(g); g.connect(bgm.bus); o.start(when); o.stop(end + 0.05);
+    });
+  }
+  function bgmTick() {
+    if (!bgm) return;
+    const now = bgm.a.currentTime;
+    if (bgm.next < now) bgm.next = now + 0.1;
+    const beat = bgmDeep ? 1.3 : bgmLevel > 0.5 ? 1.05 : 0.9;
+    while (bgm.next < now + 0.6) {
+      if (bgmMode !== 'tune') {
+        /* uneasy figure: two low notes a semitone apart, far apart in time, now and then a deeper one under them */
+        if (bgmOn && bgmMode === 'tense') {
+          bgmNote(bgm.k % 2 ? -11 : -12, bgm.next, 0.24, 3.6);
+          if (bgm.k % 4 === 3) bgmNote(-29, bgm.next + 0.6, 0.3, 4.5);
+        }
+        bgm.k += 1; bgm.next += 2.3;
+        bgm.i = 0; bgm.pos = 0; /* the tune starts from its beginning when it comes back */
+        continue;
+      }
+      const n = BGM_TUNE[bgm.i];
+      if (bgmOn) {
+        if (bgm.pos % 6 === 0) bgmNote(BGM_BASS[Math.floor(bgm.pos / 12) % 4], bgm.next, 0.3, 5);
+        if (n[0] !== null) {
+          const sag = bgmDeep && Math.random() < 0.3 ? -0.5 : 0;
+          bgmNote(n[0] + (bgmDeep ? -12 : 0) + sag, bgm.next, bgmDeep ? 0.26 : 0.2, bgmDeep ? 3.4 : 2.6);
+        }
+      }
+      bgm.pos += n[1]; bgm.next += n[1] * beat;
+      bgm.i = (bgm.i + 1) % BGM_TUNE.length;
+      if (bgm.i === 0) bgm.pos = 0;
+    }
+  }
+  function bgmStart() {
+    if (!bgmOn) return;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) { return; }
+    if (bgm) return;
+    const a = ctx, master = a.createGain(), bus = a.createGain();
+    const echo = a.createDelay(1), back = a.createGain(), wet = a.createGain(); /* a soft echo, as in an empty corridor */
+    master.gain.value = 0; echo.delayTime.value = 0.42; back.gain.value = 0.38; wet.gain.value = 0.32;
+    bus.connect(master); bus.connect(echo); echo.connect(back); back.connect(echo); echo.connect(wet); wet.connect(master);
+    master.connect(a.destination);
+    bgm = { a, master, bus, i: 0, pos: 0, k: 0, next: a.currentTime + 1.2 };
+    setInterval(bgmTick, 120);
+    bgmApply(2);
+  }
+  /* which music goes with a picture: the tune plays over places and objects only. When a person is on screen it
+     falls silent so the voice is alone; when that person's face changes (the "2" pictures) an uneasy figure plays instead. */
+  function bgmScene(key) {
+    const who = /^(nurse|he|lan|zhou|wu|xiu|mu|chen|gao|wang)(2?)$/.exec(key);
+    bgmMode = who ? (who[2] ? 'tense' : 'quiet') : 'tune';
+    bgmDeep = BGM_DEEP.indexOf(key) >= 0;
+    bgmLevel = bgmDeep ? 1 : BGM_NIGHT.indexOf(key) >= 0 ? 0.7 : 0.4;
+    bgmApply(3);
+  }
+  document.addEventListener('pointerdown', bgmStart);
+  document.addEventListener('keydown', bgmStart);
+  $('sndBtn').addEventListener('click', () => { showSound(); $('snd').hidden = false; $('sndClose').focus(); });
+  $('sndClose').addEventListener('click', () => { $('snd').hidden = true; });
+  $('voiceTog').addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    if (!voiceOn && vAudio) { try { vAudio.pause(); } catch (e) { /* ignore */ } talk(false); }
+    showSound(); saveSound();
+  });
+  $('sfxTog').addEventListener('click', () => { sfxOn = !sfxOn; showSound(); saveSound(); if (sfxOn) thud(0.3); });
+  $('bgmTog').addEventListener('click', () => { bgmOn = !bgmOn; showSound(); saveSound(); if (bgmOn) bgmStart(); bgmApply(1.2); });
+
+  /* ---------- dialogue box ---------- */
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let tapResolve = null, typing = null;
+  function waitTap() {
+    return new Promise((r) => { tapResolve = r; nextBtn.hidden = false; });
+  }
+  function tap() {
+    if (typing) { typing.finish(); return; }
+    if (!tapResolve) return;
+    const r = tapResolve; tapResolve = null; nextBtn.hidden = true; r();
+  }
+  nextBtn.addEventListener('click', (e) => { e.stopPropagation(); tap(); });
+  stage.addEventListener('click', (e) => { if (!e.target.closest('.opt, .photo')) tap(); });
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); tap(); }
+  });
+
+  function setBox(cls, text, who) {
+    txt.className = cls;
+    whoEl.hidden = !who;
+    whoEl.textContent = who || '';
+    txt.textContent = text;
+  }
+  function type(cls, text, who) {
+    return new Promise((resolve) => {
+      setBox(cls, '', who);
+      if (reduced) { txt.textContent = text; resolve(); return; }
+      if (who && cls !== 'tip') talk(true);
+      let i = 0;
+      const timer = setInterval(() => {
+        i += 1;
+        txt.textContent = text.slice(0, i);
+        if (i >= text.length) done();
+      }, 26);
+      function done() { clearInterval(timer); typing = null; txt.textContent = text; if (!vAudio || vAudio.paused || vAudio.ended) talk(false); resolve(); }
+      typing = { finish: done };
+    });
+  }
+  const VOICE = /*VOICE*/{"護理長|「醒了？慢慢來，不要急。」": "v000", "護理長|「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」": "v001", "護理長|「社會局安排的。你一個人住，總要有人照顧。」": "v002", "護理長|「家裡沒有人了，回去做什麼呢。先住下來，好不好？」": "v003", "護理長|「藥早晚各一次，晚上那顆幫助睡眠。下午有高老師的懷舊課，大家都很喜歡。」": "v004", "何太太|「你好，你是新來的吧？」": "v005", "何太太|「我也是新來的。我昨天才來的。我們互相照顧。」": "v006", "蘭嬸|「來來來，新來的喔？呷飽未？」": "v007", "蘭嬸|「這碗是要給那個囝仔的，伊猶未呷。」": "v008", "蘭嬸|「……就是那個囝仔啊。」": "v009", "蘭嬸|「奇怪，伊叫啥物名……」": "v010", "蘭嬸|「緊呷，飯冷去就歹呷。」": "v011", "老周|「報告！新兵報到！」": "v012", "老周|「好。好。晚上不要亂走，晚上有哨。」": "v013", "老周|「樓下有人敲門，不要應。」": "v014", "老周|「不是兵？」": "v015", "老周|「你是。我記得你的臉。你是那個掃地的。」": "v016", "吳會計|「初次見面。敝姓吳，以前管帳的。」": "v017", "吳會計|「我什麼都要記下來。不記，就會不見。」": "v018", "吳會計|「人。」": "v019", "吳會計|「今年走了五位。去年三位。請等我一下，我寫在哪裡了……」": "v020", "吳會計|「好習慣。但是要記得——」": "v021", "吳會計|「寫完要自己再看一次。看是不是你的字。」": "v022", "秀琴阿嬤|「月娘光光照窗前，阿母等囝仔轉來——」": "v023", "秀琴阿嬤|「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」": "v024", "秀琴阿嬤|「我剛剛唱了什麼？」": "v025", "秀琴阿嬤|「我沒有。我不記得。」": "v026", "秀琴阿嬤|「是喔？我自己都不記得了。」": "v027", "木伯|「不行。」": "v028", "木伯|「深。」": "v029", "護理長|「陳阿嬤不認得人了。她每天都坐在那裡看海。」": "v030", "高老師|「歡迎。不用緊張，我們就是聊聊天。」": "v031", "高老師|「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」": "v032", "高老師|「這張呢？」": "v033", "高老師|「是嗎？很多老房子都長得很像。」": "v034", "高老師|「沒關係，慢慢來。」": "v035", "高老師|「就是這裡呀，四十年前的樣子。那時候還不叫安養院。」": "v036", "高老師|「叫什麼我也不清楚。我那時候還沒出生呢。」": "v037", "高老師|「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」": "v038", "高老師|「今天就到這裡。你做得很好。」": "v039", "護理長|「這顆是你的。睡前吃，一覺到天亮。」": "v040", "護理長|「嘴巴張開，我看一下。」": "v041", "護理長|「你今天比較累，要好好睡。」": "v042", "小孩的聲音|「大哥哥，再玩一次。」": "v043", "年輕的你|「好。敲三下是人，敲四下是鬼。聽到三下，才可以開門喔。」": "v044", "小孩的聲音|「是人！」": "v045", "老王|「聽到敲四下，不要應。不要應。」": "v046", "老王|「誰？」": "v047", "老王|「……回去睡覺。」": "v048", "何太太|「你好，你是新來的吧？我也是。」": "v049", "何太太|「我昨天才來的。」": "v050", "高老師|「看到哪一張，會讓你想起什麼？」": "v051", "牆裡的聲音|「你今天比較早。」": "v052", "牆裡的聲音|「上一次，你是兩點四十分來的。」": "v053", "牆裡的聲音|「你每次都先問這個。」": "v054", "牆裡的聲音|「第一次你問了三遍。第二次你哭了。」": "v055", "牆裡的聲音|「我是十一號。你以前不是這樣叫我的。」": "v056", "牆裡的聲音|「你來過。」": "v057", "牆裡的聲音|「你第三次來的時候，穿藍色的毛衣。左手有一道新的傷口。」": "v058", "牆裡的聲音|「這是你第七次來了。」": "v059", "牆裡的聲音|「你每次都這樣說。」": "v060", "牆裡的聲音|「帶糖來。」": "v061", "牆裡的聲音|「他們會讓你忘記。」": "v062", "牆裡的聲音|「我不會忘。我什麼都不會忘。」": "v063", "牆裡的聲音|「回去。他兩點五十五分會經過這裡。」": "v064", "牆裡的聲音|「你上次也跑掉了。」": "v065", "牆裡的聲音|「沒關係。你會回來。你每次都回來。」": "v066"}/*END*/;
+  let vAudio = null;
+  function voice(who, text) {
+    if (vAudio) { try { vAudio.pause(); } catch (e) { /* ignore */ } vAudio = null; }
+    if (!voiceOn) return;
+    const id = VOICE[who + '|' + text];
+    if (!id) return;
+    try {
+      const a = new Audio('voice/' + id + '.mp3');
+      if (who === '牆裡的聲音') { a.preservesPitch = false; a.playbackRate = 0.9; }
+      const pr = a.play();
+      if (pr && pr.catch) pr.catch(() => {});
+      a.addEventListener('ended', () => talk(false));
+      vAudio = a;
+    } catch (e) { vAudio = null; }
+  }
+  async function line(cls, text, who) {
+    history.push({ cls: cls, text: text, who: who || '' });
+    if (who && cls !== 'tip') voice(who, text);
+    await type(cls, text, who);
+    await waitTap();
+  }
+  const narr = (t) => line('narr', t);
+  const say = (who, t) => line('say', t, who);
+  const it = (t) => line('it', t, '牆裡的聲音');
+  function prompt(text) { history.push({ cls: 'narr', text: text, who: '' }); setBox('narr', text); }
+  function clear() { panel.textContent = ''; setBox('narr', ''); }
+  function setWhen(t) { when.textContent = t; }
+  function setGoal(t) { $('goal').hidden = !t; $('goal').textContent = t ? '目標：' + t : ''; }
+  const tip = (t) => line('tip', t, '提示');
+
+  /* pictures: decode the new picture first, then cross-fade, so the old one never flashes in */
+  const artEl = $('art'), cache = {};
+  function load(key) {
+    if (!cache[key]) {
+      cache[key] = new Promise((resolve) => {
+        const im = new Image();
+        im.onload = () => resolve(im.src);
+        im.onerror = () => resolve(im.src);
+        im.src = 'img/' + key + '.jpg';
+        if (im.decode) im.decode().then(() => resolve(im.src)).catch(() => {});
+      });
+    }
+    return cache[key];
+  }
+  let cur = 0, curKey = null, artToken = 0;
+  const FLICKER = ['ceiling']; /* pictures whose light flickers */
+  function fx(name) {
+    artEl.classList.remove('fx-shock');
+    if (name && !reduced) { void artEl.offsetWidth; artEl.classList.add('fx-' + name); }
+  }
+  function art(key, effect) {
+    if (key === curKey) { if (effect) fx(effect); return; }
+    curKey = key;
+    artEl.classList.toggle('fx-flicker', FLICKER.indexOf(key) >= 0);
+    if (key) bgmScene(key);
+    hideFrames();
+    const token = ++artToken;
+    if (!key) { imgs[0].classList.remove('on'); imgs[1].classList.remove('on'); fx(null); return; }
+    load(key).then((src) => {
+      if (token !== artToken) return;
+      const show = imgs[cur], hide = imgs[1 - cur];
+      hide.onload = null;
+      hide.src = src;
+      const swap = () => {
+        if (token !== artToken) return;
+        hide.classList.add('on');
+        show.classList.remove('on');
+        cur = 1 - cur;
+        fx(effect || null);
+      };
+      if (hide.decode) hide.decode().then(swap).catch(swap); else swap();
+    });
+  }
+  /* frame animation: lay a second drawing of the same picture on top for a moment.
+     The extra frames differ from the base picture only around the eyes or the mouth. */
+  const BLINK = /*BLINK*/{"nurse":"nurse_b","nurse2":"nurse2_b","he":"he_b","zhou":"zhou_b","zhou2":"zhou2_b","wu":"wu_b","gao":"gao_b","wang":"wang_b","gao2":"gao2_b","chen":"chen_b"}/*END*/, MOUTH = /*MOUTH*/{"nurse":"nurse_m","nurse2":"nurse2_m","he":"he_m","zhou":"zhou_m","zhou2":"zhou2_m","wu":"wu_m","gao":"gao_m","wang":"wang_m"}/*END*/;
+  const mouthImg = $('imgMouth');
+  /* EYES_AT / MOUTH_AT = where the eyes and the mouth are in each picture (centre x, centre y, radius x, radius y
+     as fractions). A frame is clipped to that ellipse, so nothing else in the picture can shimmer when it shows. */
+  const EYES_AT = { nurse: [0.52, 0.235, 0.13, 0.045], nurse2: [0.625, 0.375, 0.19, 0.095], he: [0.58, 0.247, 0.125, 0.055],
+    zhou: [0.645, 0.152, 0.09, 0.035], zhou2: [0.635, 0.39, 0.19, 0.095], wu: [0.51, 0.185, 0.11, 0.04],
+    gao: [0.545, 0.23, 0.12, 0.048], gao2: [0.53, 0.295, 0.12, 0.045], wang: [0.41, 0.143, 0.07, 0.033], chen: [0.513, 0.195, 0.108, 0.048] };
+  function clipFrame(img, at) {
+    const nw = img.naturalWidth, nh = img.naturalHeight, W = img.clientWidth, H = img.clientHeight;
+    if (!at || !nw || !nh || !W || !H) { img.style.clipPath = ''; return; }
+    const s = Math.min(W / nw, H / nh), dw = nw * s, dh = nh * s, ox = (W - dw) / 2, oy = (H - dh) / 2;
+    img.style.clipPath = 'ellipse(' + (at[2] * dw * 1.3).toFixed(1) + 'px ' + (at[3] * dh * 1.3).toFixed(1) + 'px at ' +
+      (ox + at[0] * dw).toFixed(1) + 'px ' + (oy + at[1] * dh).toFixed(1) + 'px)';
+  }
+  async function blink(key, hold) {
+    if (reduced) return;
+    const forKey = curKey;
+    const src = await load(key);
+    if (curKey !== forKey) return;
+    blinkImg.src = src;
+    try { if (blinkImg.decode) await blinkImg.decode(); } catch (e) { /* ignore */ }
+    if (curKey !== forKey) return;
+    clipFrame(blinkImg, EYES_AT[forKey]);
+    blinkImg.classList.add('on');
+    await sleep(70 + (hold || 0)); /* a light, quick blink: eyes stay shut only a moment */
+    blinkImg.classList.remove('on');
+    await sleep(160);
+  }
+  function hideFrames() { blinkImg.classList.remove('on'); mouthImg.classList.remove('on'); }
+  (function idleBlink() {
+    setTimeout(() => {
+      if (curKey && BLINK[curKey] && !document.hidden) blink(BLINK[curKey], 0);
+      idleBlink();
+    }, 2600 + Math.random() * 3800);
+  })();
+  /* while a character speaks the open-mouth frame simply stays on; it closes when the line ends.
+     MOUTH_AT = where the mouth is in each picture (centre x, centre y, radius x, radius y as fractions),
+     so the mouth frame covers only the mouth and blinking still shows through. */
+  const MOUTH_AT = { nurse: [0.515, 0.36, 0.09, 0.045], nurse2: [0.565, 0.563, 0.105, 0.055], he: [0.565, 0.37, 0.085, 0.045],
+    zhou: [0.653, 0.247, 0.065, 0.035], zhou2: [0.575, 0.655, 0.10, 0.05], wu: [0.525, 0.285, 0.065, 0.035],
+    gao: [0.535, 0.335, 0.075, 0.04], wang: [0.42, 0.215, 0.045, 0.028] };
+  function clipMouth(key) { clipFrame(mouthImg, MOUTH_AT[key]); }
+  let talkToken = 0;
+  function talk(on) {
+    const token = ++talkToken;
+    mouthImg.classList.remove('on');
+    if (!on || !curKey || !MOUTH[curKey]) return;
+    const forKey = curKey;
+    load(MOUTH[curKey]).then(async (src) => {
+      if (curKey !== forKey || token !== talkToken) return;
+      mouthImg.src = src;
+      try { if (mouthImg.decode) await mouthImg.decode(); } catch (e) { /* ignore */ }
+      if (curKey !== forKey || token !== talkToken) return;
+      clipMouth(forKey);
+      mouthImg.classList.add('on');
+    });
+  }
+  window.addEventListener('resize', () => { if (mouthImg.classList.contains('on') && curKey) clipMouth(curKey); });
+  ['nurse', 'nurse2', 'he', 'he2', 'hall', 'lan', 'lan2', 'zhou', 'zhou2', 'wu', 'wu2', 'xiu', 'xiu2', 'mu', 'mu2', 'chen', 'chen2',
+    'gao', 'gao2', 'photo_store', 'photo_trike', 'photo_hall', 'wang', 'crack',
+    'outside', 'ceiling', 'flowers', 'pill', 'room', 'notebook', 'dream', 'basement', 'finger', 'scar', 'room_day', 'crack_closed', 'nurse_b', 'nurse_m', 'nurse2_b', 'nurse2_m', 'he_b', 'he_m', 'zhou_b', 'zhou_m', 'zhou2_b', 'zhou2_m', 'wu_b', 'wu_m', 'gao_b', 'gao_m', 'wang_b', 'wang_m', 'gao2_b', 'chen_b', 'finger_a', 'finger_b'].forEach((k, i) => { setTimeout(() => load(k), 400 + i * 150); });
+  stage.addEventListener('pointermove', (e) => {
+    if (reduced) return;
+    const r = stage.getBoundingClientRect();
+    artEl.style.translate = (((e.clientX - r.left) / r.width - 0.5) * -10).toFixed(1) + 'px ' + (((e.clientY - r.top) / r.height - 0.5) * -6).toFixed(1) + 'px';
+  });
+  function bigText(t) { big.textContent = t || ''; }
+
+  function choose(opts) {
+    return new Promise((resolve) => {
+      choices.textContent = '';
+      opts.forEach((o, i) => {
+        const label = typeof o === 'string' ? o : o.t;
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'opt'; b.textContent = label;
+        if (typeof o === 'object' && o.sub) { const s = document.createElement('small'); s.textContent = o.sub; b.appendChild(s); }
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          choices.textContent = '';
+          history.push({ cls: 'you', text: label, who: '' });
+          resolve(i);
+        });
+        choices.appendChild(b);
+      });
+    });
+  }
+
+  function choosePhoto(items) {
+    return new Promise((resolve) => {
+      const row = document.createElement('div'); row.className = 'photos';
+      items.forEach((o, i) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'photo';
+        const im = document.createElement('img'); im.src = 'img/' + o.k + '.jpg'; im.alt = '';
+        const s = document.createElement('span'); s.textContent = o.t;
+        b.appendChild(im); b.appendChild(s);
+        b.addEventListener('click', (e) => {
+          e.stopPropagation();
+          choices.textContent = '';
+          history.push({ cls: 'you', text: '（拿起「' + o.t + '」那張照片）', who: '' });
+          resolve(i);
+        });
+        row.appendChild(b);
+      });
+      choices.textContent = ''; choices.appendChild(row);
+    });
+  }
+
+  async function knock(n, vol) {
+    for (let i = 0; i < n; i++) {
+      const k = document.createElement('span');
+      k.className = 'knock'; k.textContent = '叩';
+      k.style.left = (22 + i * 16) + '%'; k.style.top = (34 + (i % 2) * 14) + '%';
+      big.appendChild(k);
+      thud(vol || 0.5);
+      if (!reduced) { app.classList.remove('shake'); void app.offsetWidth; app.classList.add('shake'); }
+      await sleep(620);
+    }
+    await sleep(500);
+    big.textContent = '';
+  }
+
+  function note(text) {
+    S.notes.push(text);
+    if (S.hasBook) $('bookBtn').classList.add('new');
+  }
+
+  /* ---------- notebook and history ---------- */
+  function pageInto(el, strike, firstOnly) {
+    el.textContent = '';
+    const first = document.createElement('div');
+    first.appendChild(document.createTextNode('不要吃晚上的藥，'));
+    const g = document.createElement('span'); g.className = 'gone'; g.title = '被塗掉了';
+    first.appendChild(g);
+    el.appendChild(first);
+    if (firstOnly) return;
+    S.notes.forEach((n) => { const d = document.createElement('div'); d.textContent = n; el.appendChild(d); });
+    if (S.mine) {
+      const d = document.createElement('div');
+      const m = document.createElement('span');
+      m.className = 'mine' + (strike ? ' struck' : '');
+      if (S.struck && !strike) m.style.backgroundSize = '100% .95em';
+      m.textContent = S.mine;
+      d.appendChild(m); el.appendChild(d);
+    }
+    if (!S.notes.length && !S.mine) {
+      const d = document.createElement('div'); d.className = 'faint'; d.textContent = '（後面都是空白的）';
+      el.appendChild(d);
+    }
+  }
+  function showPaper(strike, firstOnly) {
+    const pg = document.createElement('div'); pg.className = 'paper';
+    pageInto(pg, strike, firstOnly);
+    panel.textContent = ''; panel.appendChild(pg);
+  }
+  $('bookBtn').addEventListener('click', () => {
+    pageInto($('bookPage'), false, false);
+    $('bookBtn').classList.remove('new');
+    $('book').hidden = false;
+    $('bookClose').focus();
+  });
+  $('bookClose').addEventListener('click', () => { $('book').hidden = true; });
+  $('histBtn').addEventListener('click', () => {
+    const list = $('histList');
+    list.textContent = '';
+    history.slice(-60).forEach((h) => {
+      const el = document.createElement('p'); el.className = h.cls;
+      if (h.who) { const b = document.createElement('b'); b.textContent = h.who; el.appendChild(b); }
+      el.appendChild(document.createTextNode(h.cls === 'you' ? '› ' + h.text : h.text));
+      list.appendChild(el);
+    });
+    if (!history.length) { const el = document.createElement('p'); el.textContent = '還沒有對話。'; list.appendChild(el); }
+    $('hist').hidden = false;
+    $('hist').scrollTop = $('hist').scrollHeight;
+    $('histClose').focus();
+  });
+  $('histClose').addEventListener('click', () => { $('hist').hidden = true; });
+
+  let startResolve = null, guideResolve = null;
+  function openGuide() {
+    return new Promise((resolve) => {
+      guideResolve = resolve;
+      $('guide').hidden = false;
+      $('guide').scrollTop = 0;
+      $('guideClose').focus();
+    });
+  }
+  $('guideClose').addEventListener('click', () => {
+    $('guide').hidden = true;
+    if (guideResolve) { const r = guideResolve; guideResolve = null; r(); }
+  });
+  $('guideBtn').addEventListener('click', () => { openGuide(); });
+  $('howBtn').addEventListener('click', (e) => { e.stopPropagation(); openGuide(); });
+  $('startBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (startResolve) { const r = startResolve; startResolve = null; r(); }
+  });
+  $('cover').addEventListener('click', (e) => { e.stopPropagation(); $('cover').classList.add('skip'); });
+
+  /* ---------- scenes ---------- */
+  async function opening() {
+    clear(); art(null); setWhen('七窟'); setGoal('');
+    const cover = $('cover');
+    cover.classList.remove('skip');
+    cover.hidden = false;
+    await new Promise((resolve) => { startResolve = resolve; });
+    let seen = false;
+    try { seen = localStorage.getItem('qiku_guide') === '1'; } catch (e) { seen = false; }
+    if (!seen) {
+      await openGuide();
+      try { localStorage.setItem('qiku_guide', '1'); } catch (e) { /* storage unavailable */ }
+    }
+    cover.hidden = true;
+    audio();
+    clear();
+    setBox('title', '第一晚　敲四下');
+    bigText('人敲三，');
+    await sleep(1700);
+    bigText('鬼敲四。');
+    await sleep(1900);
+    bigText('');
+    await knock(4, 0.55);
+  }
+
+  async function wake() {
+    setWhen('第一天・早晨'); setGoal('弄清楚自己在哪裡'); clear(); art('outside');
+    await narr('山裡有一棟兩層樓的舊房子。門口那棵榕樹，比房子還老。');
+    art('ceiling');
+    await narr('天花板是陌生的。日光燈管有一支在閃。');
+    await narr('你想坐起來。手背上貼著一塊膠布，底下有針孔。');
+    art('nurse');
+    await say('護理長', '「醒了？慢慢來，不要急。」');
+    await say('護理長', '「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」');
+    const c = await choose(['「我怎麼會在這裡？」', '「我想回家。」', '（不說話）']);
+    if (c === 0) await say('護理長', '「社會局安排的。你一個人住，總要有人照顧。」');
+    if (c === 1) await say('護理長', '「家裡沒有人了，回去做什麼呢。先住下來，好不好？」');
+    if (c === 2) await narr('她幫你把枕頭拍鬆，像在哄一個小孩。');
+    await say('護理長', '「藥早晚各一次，晚上那顆幫助睡眠。下午有高老師的懷舊課，大家都很喜歡。」');
+    await narr('她叫了你的名字。那個名字你用了三十幾年，今天聽起來卻有點生。');
+    clear(); art('he');
+    await narr('走廊上，一位戴珍珠耳環的太太向你伸出手。');
+    await say('何太太', '「你好，你是新來的吧？」');
+    await say('何太太', '「我也是新來的。我昨天才來的。我們互相照顧。」');
+    await narr('她笑得很得體。你注意到，她房門口的名牌已經泛黃了。');
+  }
+
+  const people = {
+    lan: { label: '餐廳裡盛飯的阿嬸', sub: '蘭嬸' },
+    zhou: { label: '走廊正中央的老先生', sub: '老周' },
+    wu: { label: '抱著帳本的先生', sub: '吳會計' },
+    xiu: { label: '活動室傳來歌聲', sub: '秀琴阿嬤' },
+    mu: { label: '中庭的大榕樹', sub: '木伯' },
+    chen: { label: '上三樓看看', sub: '走廊盡頭那間' }
+  };
+
+  async function visit(k) {
+    clear();
+    if (k === 'lan') {
+      art('lan');
+      await say('蘭嬸', '「來來來，新來的喔？呷飽未？」');
+      await narr('她塞給你一碗飯，又盛了一碗，放在旁邊的空位上。');
+      await say('蘭嬸', '「這碗是要給那個囝仔的，伊猶未呷。」');
+      const c = await choose(['「哪個囝仔？」', '（不問，把飯吃完）']);
+      if (c === 0) {
+        await narr('她的手停在半空。');
+        await say('蘭嬸', '「……就是那個囝仔啊。」');
+        art('lan2');
+        await narr('她看著那張空椅子，笑容慢慢不見了。');
+        await say('蘭嬸', '「奇怪，伊叫啥物名……」');
+        art('lan');
+        await narr('過了幾秒，她又笑起來，像什麼都沒發生。');
+        await say('蘭嬸', '「緊呷，飯冷去就歹呷。」');
+        note('蘭嬸每餐多盛一碗飯，給「那個囝仔」。這裡沒有小孩。');
+      } else {
+        art('lan2');
+        await narr('你吃完了。旁邊那碗飯，從頭到尾沒有人去動。');
+        note('蘭嬸多盛了一碗飯，放在空位上。');
+      }
+    }
+    if (k === 'zhou') {
+      art('zhou');
+      await narr('他看見你，腳跟一併，舉手敬禮。');
+      await say('老周', '「報告！新兵報到！」');
+      const c = await choose(['（回禮）', '「老先生，我不是兵。」']);
+      if (c === 0) {
+        await narr('他的眼睛亮了一下。');
+        await say('老周', '「好。好。晚上不要亂走，晚上有哨。」');
+        art('zhou2');
+        await narr('他湊近你，壓低聲音，嘴唇幾乎不動。');
+        await say('老周', '「樓下有人敲門，不要應。」');
+        note('老周說：晚上樓下有人敲門，不要應。');
+      } else {
+        await say('老周', '「不是兵？」');
+        art('zhou2');
+        await narr('他盯著你的臉，看了很久。');
+        await say('老周', '「你是。我記得你的臉。你是那個掃地的。」');
+        await narr('你不知道他在說什麼。');
+        note('老周說他記得我的臉。說我是「那個掃地的」。');
+      }
+    }
+    if (k === 'wu') {
+      art('wu');
+      await say('吳會計', '「初次見面。敝姓吳，以前管帳的。」');
+      await narr('他翻開懷裡的帳本，寫了一行字，又闔上。');
+      await say('吳會計', '「我什麼都要記下來。不記，就會不見。」');
+      const c = await choose(['「什麼會不見？」', '「我也有記東西的習慣。」']);
+      if (c === 0) {
+        await say('吳會計', '「人。」');
+        await narr('他把帳本轉過來。一整頁的名字，大半被劃掉了。');
+        art('wu2', 'shock');
+        await say('吳會計', '「今年走了五位。去年三位。請等我一下，我寫在哪裡了……」');
+        await narr('他翻了又翻，手開始抖。');
+        note('吳會計的帳本：今年走了五位，去年三位。');
+      } else {
+        await narr('他第一次正眼看你。');
+        await say('吳會計', '「好習慣。但是要記得——」');
+        await narr('他把聲音放得很輕。');
+        await say('吳會計', '「寫完要自己再看一次。看是不是你的字。」');
+        note('吳會計說：寫完要再看一次，看是不是自己的字。');
+      }
+    }
+    if (k === 'xiu') {
+      art('xiu');
+      await narr('她閉著眼睛，雙手握在胸前，唱一首你沒聽過的歌。');
+      await say('秀琴阿嬤', '「月娘光光照窗前，阿母等囝仔轉來——」');
+      const c = await choose(['（坐下來聽完）', '（走開）']);
+      if (c === 0) {
+        await narr('唱到第二段，詞變了。');
+        await say('秀琴阿嬤', '「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」');
+        await narr('她突然停住，睜開眼睛。');
+        await say('秀琴阿嬤', '「我剛剛唱了什麼？」');
+        const d = await choose(['（把她唱的詞告訴她）', '「很好聽。」']);
+        if (d === 0) {
+          art('xiu2', 'shock');
+          await narr('她的臉一下子白了。');
+          await say('秀琴阿嬤', '「我沒有。我不記得。」');
+          await narr('她捂住耳朵，身體縮成一團。');
+          art('nurse2');
+          await narr('護理長快步走過來，看了你一眼。');
+          S.alert += 1;
+          note('秀琴阿嬤的歌唱到一半換了詞：有人牽著囝仔要走，是她去講的。');
+        } else {
+          await say('秀琴阿嬤', '「是喔？我自己都不記得了。」');
+          note('秀琴阿嬤唱歌會換詞。她自己不記得。');
+        }
+      } else {
+        await narr('歌聲在你背後繼續。');
+      }
+    }
+    if (k === 'mu') {
+      art('mu');
+      await narr('中庭有一棵很大的榕樹，氣根垂到地上。一個戴斗笠的老人跪在樹根旁種花。');
+      const c = await choose(['（走過去幫忙）', '（站在旁邊看）']);
+      if (c === 0) {
+        art('mu2', 'shock');
+        await narr('你剛踏進花圃，他的手就擋在你面前。');
+        await say('木伯', '「不行。」');
+        await narr('他沒有抬頭。過了很久，才又說了一個字。');
+        await say('木伯', '「深。」');
+        note('木伯不讓人踩榕樹下的花圃。他說：「深。」');
+      } else {
+        art('flowers');
+        await narr('他種得很慢。每一株的間距都一樣，一排七株，兩排。');
+        await narr('種完最後一株，他對著花圃，把斗笠摘下來，站了一會兒。');
+        note('木伯在榕樹下種了兩排花，一排七株。');
+      }
+    }
+    if (k === 'chen') {
+      art('chen2');
+      await narr('三樓走廊盡頭的房門開著。一位阿嬤坐在窗邊，懷裡抱著一個舊糖果盒。');
+      const c = await choose(['「阿嬤，妳好。」', '（繞到旁邊，看她的臉）']);
+      if (c === 0) {
+        await narr('她沒有回頭。');
+        art('nurse');
+        await say('護理長', '「陳阿嬤不認得人了。她每天都坐在那裡看海。」');
+        art('chen2');
+        await narr('你順著她的視線看出去。窗外是山，和中庭那棵榕樹。');
+        await narr('沒有海。');
+        note('護理長說三樓的陳阿嬤每天在看海。窗外沒有海。');
+      } else {
+        art('chen');
+        await narr('她在微笑。右臉頰有一顆痣。');
+        await narr('她抱著糖果盒的手，指節很用力。不像一個糊塗的人。');
+        note('三樓的陳阿嬤抱著一個糖果盒，抱得很緊。');
+      }
+      art('chen2');
+      await narr('你轉身要走的時候，覺得背後有人在看你。回頭，她仍然望著窗外。');
+    }
+  }
+
+  async function day() {
+    setWhen('第一天・白天'); setGoal('認識這裡的人（可以去 3 個地方）');
+    clear(); art('hall');
+    await tip('白天可以去三個地方。每個人知道的事都不一樣，先去找你最好奇的人。');
+    let left = 3;
+    while (left > 0) {
+      clear(); art('hall');
+      setGoal('認識這裡的人（還可以去 ' + left + ' 個地方）');
+      prompt('離下午的課還有一點時間。你想去哪裡？');
+      const keys = Object.keys(people).filter((k) => !S.seen[k]);
+      const i = await choose(keys.map((k) => ({ t: people[k].label, sub: people[k].sub })));
+      const k = keys[i];
+      S.seen[k] = true;
+      await visit(k);
+      left -= 1;
+    }
+  }
+
+  async function therapy() {
+    setWhen('第一天・下午'); setGoal('參加高老師的懷舊治療'); clear(); art('hall');
+    /* a short bridge: what just happened, and where you are being taken now */
+    await narr('走廊上的鐘敲了兩下。');
+    await narr('一個上午，你見了三個人。每個人說的話都缺了一塊，像被人挖走了什麼。');
+    await narr('護理長在走廊那頭拍了拍手。住民們放下手邊的事，一個接一個站起來，排成一列。');
+    await narr('沒有人說要去哪裡。你跟在最後面，被帶往走廊盡頭的一扇門。門上貼著一張紙：懷舊治療室。');
+    clear(); art('gao');
+    await narr('懷舊治療室的牆上貼滿老照片。高老師大約三十五歲，說話的時候會一直看著你的眼睛。');
+    await say('高老師', '「歡迎。不用緊張，我們就是聊聊天。」');
+    await tip('這些問題沒有標準答案。想說什麼、說多少，由你決定。');
+    await say('高老師', '「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」');
+    await narr('他在桌上排開三張老照片。');
+    history.push({ cls: 'say', text: '「看到哪一張，會讓你想起什麼？」', who: '高老師' });
+    setBox('say', '「看到哪一張，會讓你想起什麼？」', '高老師');
+    voice('高老師', '「看到哪一張，會讓你想起什麼？」');
+    const photos = [{ k: 'photo_store', t: '雜貨店' }, { k: 'photo_trike', t: '三輪車' }, { k: 'photo_hall', t: '一條走廊' }];
+    const c = await choosePhoto(photos);
+    if (c !== 2) {
+      art(photos[c].k);
+      await narr(c === 0 ? '櫃台上的玻璃罐裝著糖果。你說了一些小時候的事。' : '你說小時候坐過這種車。風很大，要抓緊。');
+      art('gao');
+      await narr('他點點頭，在本子上寫了幾個字。然後把第三張照片，往你面前推了一點。');
+      await say('高老師', '「這張呢？」');
+    }
+    art('photo_hall');
+    await narr('照片裡是一條長長的走廊，盡頭有一扇窗。');
+    await narr('你沒有來過這裡。可是你知道，走到底要右轉。右轉之後，有樓梯往下。');
+    const d = await choose(['「這條走廊，我好像走過。」', '「沒印象。」', '「這是哪裡？」']);
+    if (d !== 0) art('gao');
+    if (d === 0) {
+      S.alert += 2;
+      art('gao2', 'shock');
+      await narr('他的筆停了。只有一下。');
+      art('gao');
+      await say('高老師', '「是嗎？很多老房子都長得很像。」');
+      await narr('他笑了，把照片收回去。');
+    } else if (d === 1) {
+      await say('高老師', '「沒關係，慢慢來。」');
+      await narr('他多看了你一眼，才把照片收回去。');
+    } else {
+      S.alert += 1;
+      await say('高老師', '「就是這裡呀，四十年前的樣子。那時候還不叫安養院。」');
+      await say('高老師', '「叫什麼我也不清楚。我那時候還沒出生呢。」');
+    }
+    await say('高老師', '「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」');
+    const e = await choose(['「睡得很好。」', '「不太記得了。」']);
+    if (e === 1) { S.alert += 1; art('gao2'); await narr('他又寫了幾個字。這次寫得比較久。'); art('gao'); }
+    await say('高老師', '「今天就到這裡。你做得很好。」');
+  }
+
+  async function pill() {
+    setWhen('第一天・傍晚'); setGoal('決定要不要吃晚上的藥'); clear(); art('nurse');
+    await narr('傍晚。護理長推著藥車，一格一格地發。');
+    await say('護理長', '「這顆是你的。睡前吃，一覺到天亮。」');
+    await narr('她看著你，等你吞下去。');
+    await tip('吃，或是不吃。兩種選擇，晚上會遇到不一樣的事。');
+    const c = await choose(['（吞下去）', '（藏在舌頭底下）']);
+    if (c === 0) {
+      S.took = true;
+      await narr('藥丸沒有味道。她點點頭，推著車走了。');
+    } else if (S.alert >= 3) {
+      S.took = true;
+      art('nurse2');
+      await say('護理長', '「嘴巴張開，我看一下。」');
+      await narr('她的語氣還是很溫柔。你只好吞下去。');
+      await say('護理長', '「你今天比較累，要好好睡。」');
+    } else {
+      await narr('你喝了一口水，喉嚨動了一下。她點點頭，推著車走了。');
+      art('pill');
+      await narr('你把藥吐在手心。一顆白色的小藥丸，上面沒有任何字。');
+    }
+  }
+
+  async function room() {
+    setWhen('第一天・夜晚'); setGoal('回房間休息'); clear(); art('room');
+    await narr('回到房間。躺下的時候，床墊底下有東西硌著你的背。');
+    art('notebook');
+    await narr('是一本筆記本。封面磨得起毛。');
+    S.hasBook = true;
+    await narr('裡面的字很眼熟。是你的字。可是你不記得寫過。');
+    showPaper(false, true);
+    await narr('第一頁只有一行。後半句被塗掉了，塗得很用力，紙都快破了。');
+    if (S.took) await narr('可是你已經吃了。眼皮越來越重。');
+    prompt('你從抽屜找到一枝筆，把今天聽到的事抄了進去，又在最後加了一行。');
+    const opts = ['我今天才到這裡。我不記得這本筆記。', '這裡的人都很好。高老師問我睡得好不好。', '有人不想讓我看到後半句。'];
+    const i = await choose(opts);
+    S.mine = opts[i];
+    showPaper(false, false);
+    $('bookBtn').hidden = false;
+    await narr('你把筆記本塞回床墊底下。（右上角可以隨時翻開筆記本）');
+  }
+
+  async function drugged() {
+    clear(); art(null); setWhen('第一天・深夜'); setGoal('');
+    await narr('黑。很深的黑。');
+    await narr('然後，黑裡面慢慢亮起來。');
+    art('photo_hall');
+    await narr('一條走廊。下午的太陽從窗戶照進來，地板擦得很亮。');
+    await narr('你的手很年輕。手裡拿著一枝拖把。');
+    await say('小孩的聲音', '「大哥哥，再玩一次。」');
+    await narr('聲音是從一扇門後面傳出來的。你聽見自己在笑。');
+    await say('年輕的你', '「好。敲三下是人，敲四下是鬼。聽到三下，才可以開門喔。」');
+    await knock(3, 0.3);
+    await say('小孩的聲音', '「是人！」');
+    art('dream');
+    await narr('門開了一條縫。你正要看清楚那張臉——');
+    art(null);
+    await knock(4, 0.5);
+    await narr('四下。');
+    await narr('走廊不見了。你想睜開眼睛。睜不開。');
+    note('夢到一條很亮的走廊。有個小孩叫我大哥哥。敲三下是人，敲四下是鬼。');
+  }
+
+  async function night() {
+    clear(); art(null); setWhen('第一天・深夜'); setGoal('找出敲擊聲從哪裡來');
+    art('room');
+    await narr('半夜。你睜著眼睛躺在床上。走廊的燈熄了。');
+    await knock(4, 0.4);
+    await narr('四下。停。');
+    await knock(4, 0.4);
+    await narr('聲音是從地板底下傳上來的。');
+    const c = await choose(['（起來看看）', '（蓋上被子）']);
+    if (c === 1) {
+      await narr('你把被子拉過頭。敲擊聲又響了一輪，然後停了。');
+      await narr('你一直到天亮都沒有睡著。');
+      return;
+    }
+    S.went = true;
+    art('hall');
+    await narr('房門沒有鎖。');
+    await narr('走廊很長，盡頭有一扇窗。你走到底，右轉。樓梯就在那裡。');
+    await narr('你怎麼會知道？');
+    await narr('樓下有手電筒的光晃上來，還有鑰匙碰撞的聲音。');
+    const d = await choose(['（躲進轉角，等他過去）', '（趁他還沒上來，快步下樓）']);
+    art('wang');
+    if (d === 0) {
+      await narr('光從你腳邊掃過去。是夜班的警衛。');
+      await say('老王', '「聽到敲四下，不要應。不要應。」');
+      await narr('他是在對自己說。腳步聲遠了。');
+    } else {
+      S.alert += 1;
+      await narr('你的膝蓋不像以前了。下到一半，光照在你的背上。');
+      await say('老王', '「誰？」');
+      await narr('你貼著牆，不敢動。過了很久。');
+      await say('老王', '「……回去睡覺。」');
+      await narr('光移開了。他沒有走過來，也沒有問你的名字。');
+    }
+    art('basement');
+    await narr('樓梯間的門也沒有鎖。往下一層，是洗衣房，和鍋爐低低的聲音。');
+    await narr('再往裡走。頭頂的日光燈閃了兩下，熄了。');
+    await knock(4, 0.6);
+    await narr('就在你腳邊。牆角的踢腳板，裂開了一道縫。');
+    const e = await choose(['（蹲下去看）', '（轉身離開）']);
+    if (e === 1) { await leaveCrack(); return; }
+    S.met = true;
+    art('crack');
+    await narr('縫裡有一隻眼睛，正在看你。');
+    await narr('它沒有眨。');
+    await it('「你今天比較早。」');
+    await it('「上一次，你是兩點四十分來的。」');
+    const f = await choose(['「……你是誰？」', '「我沒有來過這裡。」', '（轉身就走）']);
+    if (f === 2) { await leaveCrack(); return; }
+    if (f === 0) {
+      S.answered = 'ask'; S.trust += 1;
+      await it('「你每次都先問這個。」');
+      await it('「第一次你問了三遍。第二次你哭了。」');
+      await it('「我是十一號。你以前不是這樣叫我的。」');
+    } else {
+      S.answered = 'deny';
+      await it('「你來過。」');
+      await it('「你第三次來的時候，穿藍色的毛衣。左手有一道新的傷口。」');
+      art('scar');
+      await narr('你低頭看左手。那裡有一道淡淡的疤。你不記得它是怎麼來的。');
+      art('crack');
+    }
+    art('crack');
+    await sleep(500);
+    await blink('crack_closed', 520);
+    await narr('那隻眼睛，慢慢地眨了一下。');
+    await carve();
+    await it('「這是你第七次來了。」');
+    const g = await choose(['「我明天再來。」', '「第七次？什麼意思？」', '（不說話，往後退）']);
+    if (g === 0) {
+      S.trust += 2;
+      await it('「你每次都這樣說。」');
+      await narr('縫裡安靜了一下。');
+      await it('「帶糖來。」');
+    } else if (g === 1) {
+      S.trust += 1;
+      await it('「他們會讓你忘記。」');
+      await it('「我不會忘。我什麼都不會忘。」');
+    } else {
+      await narr('那隻眼睛跟著你移動，一直到你退出它看得到的範圍。');
+    }
+    await it('「回去。他兩點五十五分會經過這裡。」');
+    art(null);
+    await narr('你回到房間的時候，走廊另一頭剛好亮起手電筒的光。');
+  }
+
+  async function leaveCrack() {
+    S.left = true;
+    art('basement');
+    await it('「你上次也跑掉了。」');
+    await narr('聲音不大，一直跟在你背後。');
+    await it('「沒關係。你會回來。你每次都回來。」');
+    await narr('你沒有回頭。背後傳來指甲刮過牆面的聲音，很慢，一道。');
+    await carve(false);
+  }
+
+  async function carve(seen) {
+    if (seen !== false) {
+      /* three drawings shown in turn: nail touches the wall, the mark half drawn, the mark finished */
+      await Promise.all([load('finger_a'), load('finger_b'), load('finger')]);
+      art('finger_a');
+      await narr('縫裡慢慢伸出一根手指。指甲很長，發黃，捲曲著。');
+      scrape();
+      await sleep(350);
+      art('finger_b');
+      await sleep(reduced ? 500 : 1300);
+      art('finger');
+      await sleep(reduced ? 300 : 900);
+      await narr('它在牆上，一筆一筆，刻下一道痕跡。');
+      return;
+    }
+    const xs = [40, 62, 84, 106];
+    let h = '<svg viewBox="0 0 260 110" role="img" aria-label="牆上的刻痕，原有六道，正在刻第七道">';
+    xs.forEach((x, i) => { h += '<line x1="' + x + '" y1="' + (22 + i % 2 * 3) + '" x2="' + (x + 3 - i) + '" y2="88"/>'; });
+    h += '<line x1="28" y1="74" x2="120" y2="34"/>';
+    h += '<line x1="150" y1="24" x2="153" y2="88"/>';
+    h += '<line class="new" x1="176" y1="22" x2="173" y2="90"/>';
+    h += '</svg>';
+    tally.innerHTML = h;
+    tally.hidden = false;
+    scrape();
+    await line('narr', seen !== false ? '它在牆上，一筆一筆，刻下一道痕跡。' : '牆上原本有六道。現在是七道。');
+    tally.hidden = true;
+    tally.textContent = '';
+  }
+
+  async function morning() {
+    clear(); art(null); setWhen('第二天・早晨'); setGoal('檢查筆記本');
+    art('room_day');
+    await narr('天亮了。');
+    if (S.went && S.met) { art('scar'); await narr('你捲起左手的袖子。那道疤還在。'); art('room_day'); }
+    await narr('你做的第一件事，是把手伸到床墊底下。');
+    S.struck = true;
+    showPaper(true, false);
+    scrape();
+    await sleep(reduced ? 300 : 2600);
+    await narr('你昨晚寫的那一行，被塗掉了。');
+    await narr('塗得很用力。你不記得自己塗過。');
+    clear(); art('he');
+    await narr('走廊上，戴珍珠耳環的太太向你伸出手。');
+    await say('何太太', '「你好，你是新來的吧？我也是。」');
+    art('he2');
+    await say('何太太', '「我昨天才來的。」');
+  }
+
+  async function ending() {
+    clear(); art(null); setWhen('第一晚　完'); setGoal('');
+    const box = document.createElement('div'); box.className = 'end';
+    const h = document.createElement('h2'); h.textContent = '第一晚　完'; box.appendChild(h);
+    const row = (a, b) => { const d = document.createElement('div'); const x = document.createElement('b'); x.textContent = a + '　'; const y = document.createElement('span'); y.textContent = b; d.appendChild(x); d.appendChild(y); box.appendChild(d); };
+    row('晚上的藥', S.took ? '吃了' : '沒吃');
+    row('地下室', !S.went ? (S.took ? '睡著了，夢見一條很亮的走廊' : '沒有下去') : (S.met ? (S.left ? '看見了，然後逃走' : '跟牆裡的人說了話') : '走到牆縫前，沒有看'));
+    row('牆裡的人', !S.went ? '他敲了一整夜，你沒有應' : S.trust >= 3 ? '他在等你明天來' : S.trust >= 1 ? '他記住了你這次說的話' : '他說你每次都回來');
+    row('懷舊治療', S.alert >= 3 ? '你說了很多' : S.alert >= 1 ? '你說了一些' : '你幾乎什麼都沒說');
+    row('筆記本', '記下 ' + S.notes.length + ' 件事，被塗掉 1 行');
+    panel.appendChild(box);
+    prompt('這是原型版本，目前只做到第一晚。第二晚「點名」還在製作中。');
+    await choose(['從頭再玩一次']);
+    $('bookBtn').hidden = true;
+    run();
+  }
+
+  async function run() {
+    reset();
+    tapResolve = null; typing = null; nextBtn.hidden = true; choices.textContent = ''; tally.hidden = true; bigText('');
+    await opening();
+    /* preview shortcut: play.html?scene=carve jumps straight to the carving scene, then the story starts as usual */
+    if (/[?&]scene=carve(&|$)/.test(location.search)) { setWhen('預覽：刻痕'); art('crack'); await sleep(900); await carve(); art(null); }
+    await wake();
+    await day();
+    await therapy();
+    await pill();
+    await room();
+    if (S.took) await drugged(); else await night();
+    await morning();
+    await ending();
+  }
+
+  run();
+})();
+</script>
+</body></html>
