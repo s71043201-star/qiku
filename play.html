@@ -338,6 +338,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 .paper .mine.struck { animation: strike 2.2s .8s ease-in forwards; }
 @keyframes strike { to { background-size: 100% .95em; } }
 .paper .faint { opacity: .55; font-size: 15px; }
+.fake.cut { text-decoration: line-through; text-decoration-color: var(--blood); text-decoration-thickness: 2px; }
 
 /* animated cover: the wall crack drifts in, the title is scratched out stroke by stroke, then seven marks */
 #cover { position: absolute; inset: 0; z-index: 6; background: var(--ink); display: flex; flex-direction: column; overflow: hidden; }
@@ -433,6 +434,20 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 }
 .sheet .paper, #histList { width: 100%; max-width: 460px; }
 #histList { display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+/* feedback sheet at the end of a night */
+.fb { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 10px; }
+.fb h3 { margin: 0; font-family: var(--display); font-size: 18px; font-weight: 400; letter-spacing: .3em; text-align: center; color: var(--paper); }
+.fb p { margin: 0; font-size: 14px; line-height: 1.7; color: var(--paper-dim); }
+.fb input, .fb textarea {
+  width: 100%; box-sizing: border-box; background: var(--page); color: var(--page-ink); border: 0; border-radius: 1px;
+  padding: 8px 12px; font-family: var(--hand); font-size: 17px; line-height: 1.8; resize: vertical;
+}
+.fb input::placeholder, .fb textarea::placeholder { color: rgba(42, 35, 28, .5); }
+.fb input:focus-visible, .fb textarea:focus-visible { outline: 2px solid var(--blood); outline-offset: 2px; }
+.fb .opt { text-align: center; animation: none; }
+.fb .opt::before { display: none; }
+.fb .opt:disabled { opacity: .45; }
+#fbState { min-height: 1.7em; color: var(--paper); }
 #histList p { margin: 0; color: var(--paper-dim); }
 #histList p.say, #histList p.it { color: var(--paper); }
 #histList p.you { padding-left: 12px; border-left: 2px solid var(--blood); }
@@ -513,6 +528,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       </div>
       <div class="cv-btns">
         <button class="opt" id="startBtn" type="button">開始遊戲</button>
+        <button class="opt" id="contBtn" type="button" hidden>從第二晚開始</button>
         <button class="opt" id="howBtn" type="button">遊玩說明</button>
       </div>
     </div>
@@ -561,6 +577,17 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   </div>
   <button class="chip" id="sndClose" type="button">完成</button>
 </div>
+<div class="sheet" id="fb" hidden>
+  <div class="fb">
+    <h3>留言給作者</h3>
+    <p>玩到這裡的感想、看不懂的地方、覺得哪裡怪，都可以寫。不用登入，留言只有作者看得到。</p>
+    <input id="fbName" type="text" maxlength="20" placeholder="暱稱（可以不填）" autocomplete="off" aria-label="暱稱">
+    <textarea id="fbMsg" rows="6" maxlength="600" placeholder="想說的話" aria-label="留言"></textarea>
+    <p id="fbState" aria-live="polite"></p>
+    <button class="opt" id="fbSend" type="button">送出</button>
+  </div>
+  <button class="chip" id="fbClose" type="button">回到遊戲</button>
+</div>
 <div class="sheet" id="hist" hidden>
   <div id="histList"></div>
   <button class="chip" id="histClose" type="button">回到故事</button>
@@ -576,10 +603,15 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   const imgs = [$('imgA'), $('imgB')], blinkImg = $('imgBlink');
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+  /* The second night is finished but not released yet: it only runs in a local preview, or with ?n2=1 in the address. */
+  const N2_ON = !/[?&]n2=0(&|$)/.test(location.search) && (/^(localhost|127\.)/.test(location.hostname) || /[?&]n2=1(&|$)/.test(location.search));
   let S, history = [];
   function reset() {
     S = { alert: 0, trust: 0, took: false, went: false, met: false, answered: '', left: false,
-          notes: [], mine: '', hasBook: false, struck: false, seen: {} };
+          notes: [], mine: '', hasBook: false, struck: false, seen: {},
+          /* second night */
+          candy: false, gotCandy: false, gave: false, seen2: {}, names: false, pressedXiu: false, admit: false, took2: false,
+          fake: '', fake2: '', times: false, caught: false, office: false, pried: false, went2: false, checked: false, knocked: false };
     history = [];
   }
 
@@ -712,8 +744,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   let bgmHaunt = false; /* set by the first knock: the music turns wrong from then on, until the time of day changes */
   let bgmHush = false;  /* true while the storm breaks: no music at all, only rain and thunder */
   try { bgmOn = localStorage.getItem('qiku_bgm') !== '0'; } catch (e) { /* storage unavailable */ }
-  const BGM_DEEP = ['basement', 'dream', 'finger', 'finger_a', 'finger_b', 'scar', 'crack', 'crack_closed'];
-  const BGM_NIGHT = ['room', 'pill', 'notebook', 'wang', 'nurse2', 'he2', 'lan2', 'zhou2', 'wu2', 'xiu2', 'mu2', 'chen2', 'gao2'];
+  const BGM_DEEP = ['basement', 'dream', 'dream_hand', 'finger', 'finger_a', 'finger_b', 'scar', 'crack', 'crack_closed'];
+  const BGM_NIGHT = ['office', 'hall_night', 'room', 'pill', 'notebook', 'wang', 'nurse2', 'he2', 'lan2', 'zhou2', 'wu2', 'xiu2', 'mu2', 'chen2', 'gao2'];
   function bgmApply(secs) {
     if (!bgm) return;
     const t = bgm.a.currentTime;
@@ -853,7 +885,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
      It belongs to the 環境聲 switch. */
   let storm = null, stormLevel = 0, stormNext = 0;
   const STORM_UNDER = ['basement', 'crack', 'crack_closed', 'finger', 'finger_a', 'finger_b', 'scar'];
-  const STORM_DREAM = ['photo_hall', 'dream'];
+  const STORM_DREAM = ['photo_hall', 'dream', 'dream_hand'];
   function stormStart() {
     if (storm || !sfxOn) return;
     try {
@@ -935,7 +967,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   nextBtn.addEventListener('click', (e) => { e.stopPropagation(); tap(); });
   stage.addEventListener('click', (e) => { if (!e.target.closest('.opt, .photo')) tap(); });
   document.addEventListener('keydown', (e) => {
-    if ((e.key === 'Enter' || e.key === ' ') && document.activeElement.tagName !== 'BUTTON') { e.preventDefault(); tap(); }
+    if ((e.key === 'Enter' || e.key === ' ') && !/^(BUTTON|INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); tap(); }
   });
 
   function setBox(cls, text, who) {
@@ -959,7 +991,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       typing = { finish: done };
     });
   }
-  const VOICE = /*VOICE*/{"護理長|「醒了？慢慢來，不要急。」": "v000", "護理長|「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」": "v001", "護理長|「社會局安排的。你一個人住，總要有人照顧。」": "v002", "護理長|「家裡沒有人了，回去做什麼呢。先住下來，好不好？」": "v003", "護理長|「藥早晚各一次，晚上那顆幫助睡眠。下午有高老師的懷舊課，大家都很喜歡。」": "v004", "何太太|「你好，你是新來的吧？」": "v005", "何太太|「我也是新來的。我昨天才來的。我們互相照顧。」": "v006", "蘭嬸|「來來來，新來的喔？呷飽未？」": "v007", "蘭嬸|「這碗是要給那個囝仔的，伊猶未呷。」": "v008", "蘭嬸|「……就是那個囝仔啊。」": "v009", "蘭嬸|「奇怪，伊叫啥物名……」": "v010", "蘭嬸|「緊呷，飯冷去就歹呷。」": "v011", "老周|「報告！新兵報到！」": "v012", "老周|「好。好。晚上不要亂走，晚上有哨。」": "v013", "老周|「樓下有人敲門，不要應。」": "v014", "老周|「不是兵？」": "v015", "老周|「你是。我記得你的臉。你是那個掃地的。」": "v016", "吳會計|「初次見面。敝姓吳，以前管帳的。」": "v017", "吳會計|「我什麼都要記下來。不記，就會不見。」": "v018", "吳會計|「人。」": "v019", "吳會計|「今年走了五位。去年三位。請等我一下，我寫在哪裡了……」": "v020", "吳會計|「好習慣。但是要記得——」": "v021", "吳會計|「寫完要自己再看一次。看是不是你的字。」": "v022", "秀琴阿嬤|「月娘光光照窗前，阿母等囝仔轉來——」": "v023", "秀琴阿嬤|「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」": "v024", "秀琴阿嬤|「我剛剛唱了什麼？」": "v025", "秀琴阿嬤|「我沒有。我不記得。」": "v026", "秀琴阿嬤|「是喔？我自己都不記得了。」": "v027", "木伯|「不行。」": "v028", "木伯|「深。」": "v029", "護理長|「陳阿嬤不認得人了。她每天都坐在那裡看海。」": "v030", "高老師|「歡迎。不用緊張，我們就是聊聊天。」": "v031", "高老師|「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」": "v032", "高老師|「這張呢？」": "v033", "高老師|「是嗎？很多老房子都長得很像。」": "v034", "高老師|「沒關係，慢慢來。」": "v035", "高老師|「就是這裡呀，四十年前的樣子。那時候還不叫安養院。」": "v036", "高老師|「叫什麼我也不清楚。我那時候還沒出生呢。」": "v037", "高老師|「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」": "v038", "高老師|「今天就到這裡。你做得很好。」": "v039", "護理長|「這顆是你的。睡前吃，一覺到天亮。」": "v040", "護理長|「嘴巴張開，我看一下。」": "v041", "護理長|「你今天比較累，要好好睡。」": "v042", "小孩的聲音|「大哥哥，再玩一次。」": "v043", "年輕的你|「好。敲三下是人，敲四下是鬼。聽到三下，才可以開門喔。」": "v044", "小孩的聲音|「是人！」": "v045", "老王|「聽到敲四下，不要應。不要應。」": "v046", "老王|「誰？」": "v047", "老王|「……回去睡覺。」": "v048", "何太太|「你好，你是新來的吧？我也是。」": "v049", "何太太|「我昨天才來的。」": "v050", "高老師|「看到哪一張，會讓你想起什麼？」": "v051", "牆裡的聲音|「你今天比較早。」": "v052", "牆裡的聲音|「上一次，你是兩點四十分來的。」": "v053", "牆裡的聲音|「你每次都先問這個。」": "v054", "牆裡的聲音|「第一次你問了三遍。第二次你哭了。」": "v055", "牆裡的聲音|「我是十一號。你以前不是這樣叫我的。」": "v056", "牆裡的聲音|「你來過。」": "v057", "牆裡的聲音|「你第三次來的時候，穿藍色的毛衣。左手有一道新的傷口。」": "v058", "牆裡的聲音|「這是你第七次來了。」": "v059", "牆裡的聲音|「你每次都這樣說。」": "v060", "牆裡的聲音|「帶糖來。」": "v061", "牆裡的聲音|「他們會讓你忘記。」": "v062", "牆裡的聲音|「我不會忘。我什麼都不會忘。」": "v063", "牆裡的聲音|「回去。他兩點五十五分會經過這裡。」": "v064", "牆裡的聲音|「你上次也跑掉了。」": "v065", "牆裡的聲音|「沒關係。你會回來。你每次都回來。」": "v066"}/*END*/;
+  const VOICE = /*VOICE*/{"護理長|「醒了？慢慢來，不要急。」": "v000", "護理長|「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」": "v001", "護理長|「社會局安排的。你一個人住，總要有人照顧。」": "v002", "護理長|「家裡沒有人了，回去做什麼呢。先住下來，好不好？」": "v003", "護理長|「藥早晚各一次，晚上那顆幫助睡眠。下午有高老師的懷舊課，大家都很喜歡。」": "v004", "何太太|「你好，你是新來的吧？」": "v005", "何太太|「我也是新來的。我昨天才來的。我們互相照顧。」": "v006", "蘭嬸|「來來來，新來的喔？呷飽未？」": "v007", "蘭嬸|「這碗是要給那個囝仔的，伊猶未呷。」": "v008", "蘭嬸|「……就是那個囝仔啊。」": "v009", "蘭嬸|「奇怪，伊叫啥物名……」": "v010", "蘭嬸|「緊呷，飯冷去就歹呷。」": "v011", "老周|「報告！新兵報到！」": "v012", "老周|「好。好。晚上不要亂走，晚上有哨。」": "v013", "老周|「樓下有人敲門，不要應。」": "v014", "老周|「不是兵？」": "v015", "老周|「你是。我記得你的臉。你是那個掃地的。」": "v016", "吳會計|「初次見面。敝姓吳，以前管帳的。」": "v017", "吳會計|「我什麼都要記下來。不記，就會不見。」": "v018", "吳會計|「人。」": "v019", "吳會計|「今年走了五位。去年三位。請等我一下，我寫在哪裡了……」": "v020", "吳會計|「好習慣。但是要記得——」": "v021", "吳會計|「寫完要自己再看一次。看是不是你的字。」": "v022", "秀琴阿嬤|「月娘光光照窗前，阿母等囝仔轉來——」": "v023", "秀琴阿嬤|「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」": "v024", "秀琴阿嬤|「我剛剛唱了什麼？」": "v025", "秀琴阿嬤|「我沒有。我不記得。」": "v026", "秀琴阿嬤|「是喔？我自己都不記得了。」": "v027", "木伯|「不行。」": "v028", "木伯|「深。」": "v029", "護理長|「陳阿嬤不認得人了。她每天都坐在那裡看海。」": "v030", "高老師|「歡迎。不用緊張，我們就是聊聊天。」": "v031", "高老師|「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」": "v032", "高老師|「這張呢？」": "v033", "高老師|「是嗎？很多老房子都長得很像。」": "v034", "高老師|「沒關係，慢慢來。」": "v035", "高老師|「就是這裡呀，四十年前的樣子。那時候還不叫安養院。」": "v036", "高老師|「叫什麼我也不清楚。我那時候還沒出生呢。」": "v037", "高老師|「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」": "v038", "高老師|「今天就到這裡。你做得很好。」": "v039", "護理長|「這顆是你的。睡前吃，一覺到天亮。」": "v040", "護理長|「嘴巴張開，我看一下。」": "v041", "護理長|「你今天比較累，要好好睡。」": "v042", "小孩的聲音|「大哥哥，再玩一次。」": "v043", "年輕的你|「好。敲三下是人，敲四下是鬼。聽到三下，才可以開門喔。」": "v044", "小孩的聲音|「是人！」": "v045", "老王|「聽到敲四下，不要應。不要應。」": "v046", "老王|「誰？」": "v047", "老王|「……回去睡覺。」": "v048", "何太太|「你好，你是新來的吧？我也是。」": "v049", "何太太|「我昨天才來的。」": "v050", "高老師|「看到哪一張，會讓你想起什麼？」": "v051", "牆裡的聲音|「你今天比較早。」": "v052", "牆裡的聲音|「上一次，你是兩點四十分來的。」": "v053", "牆裡的聲音|「你每次都先問這個。」": "v054", "牆裡的聲音|「第一次你問了三遍。第二次你哭了。」": "v055", "牆裡的聲音|「我是十一號。你以前不是這樣叫我的。」": "v056", "牆裡的聲音|「你來過。」": "v057", "牆裡的聲音|「你第三次來的時候，穿藍色的毛衣。左手有一道新的傷口。」": "v058", "牆裡的聲音|「這是你第七次來了。」": "v059", "牆裡的聲音|「你每次都這樣說。」": "v060", "牆裡的聲音|「帶糖來。」": "v061", "牆裡的聲音|「他們會讓你忘記。」": "v062", "牆裡的聲音|「我不會忘。我什麼都不會忘。」": "v063", "牆裡的聲音|「回去。他兩點五十五分會經過這裡。」": "v064", "牆裡的聲音|「你上次也跑掉了。」": "v065", "牆裡的聲音|「沒關係。你會回來。你每次都回來。」": "v066", "老周|「點名！」": "v067", "老周|「林阿土。」": "v068", "老周|「張金水。」": "v069", "老周|「許萬得。陳有福。黃清標。李火旺。蔡文進。」": "v070", "老周|「王再發。吳天賜。鄭松柏。劉阿坤。郭榮華。謝木生。簡順天。」": "v071", "老周|「周振國。」": "v072", "老周|「有。」": "v073", "老周|「你怎麼不答？」": "v074", "老周|「喔。你是掃地的。掃地的不用點名。」": "v075", "老周|「報告，是第三批。」": "v076", "老周|「一個禮拜。一個禮拜就剩我一個。」": "v077", "吳會計|「早安。您是……請等我一下。」": "v078", "吳會計|「有了。新入住一名，前天。」": "v079", "吳會計|「新入住一名。新入住一名……」": "v080", "吳會計|「是我記重複了。對不起，是我記重複了。」": "v081", "吳會計|「這樣帳就平了。」": "v082", "吳會計|「今年走了五位。去年三位。一年比一年多。」": "v083", "秀琴阿嬤|「毋通開門。四下，毋通開門。」": "v084", "秀琴阿嬤|「是伊。伊猶在下面。」": "v085", "秀琴阿嬤|「彼一暝有人牽伊的手，行到樓梯口。是我去講的。我驚，我真正驚——」": "v086", "秀琴阿嬤|「……你的手，猶閣遮爾大。」": "v087", "秀琴阿嬤|「你是新來的喔？我唱歌給你聽。」": "v088", "秀琴阿嬤|「多謝。你的手真燒。」": "v089", "秀琴阿嬤|「較早嘛有一個少年的，手真燒。逐工牽一个囝仔，佇走廊行來行去。」": "v090", "木伯|「你的。」": "v091", "木伯|「十四。」": "v092", "木伯|「閣一个。猶未。」": "v093", "蘭嬸|「來，呷飯。今仔日有滷肉。」": "v094", "蘭嬸|「是欲予彼个囝仔的，著無？」": "v095", "蘭嬸|「共伊講，阿蘭姨猶會記得伊愛呷甜。」": "v096", "蘭嬸|「老人呷甜，會蛀齒喔。」": "v097", "蘭嬸|「端去下跤啊。燒水彼間的門口。逐工攏按呢。」": "v098", "蘭嬸|「……奇怪。我是端去予啥人？」": "v099", "高老師|「今天我們看一張合照。」": "v100", "高老師|「這張裡面，有沒有你覺得眼熟的人？」": "v101", "高老師|「人到了這個年紀，看誰都像自己。」": "v102", "高老師|「不過既然你有興趣，再給你看一張。」": "v103", "高老師|「好了。看太多會累。」": "v104", "高老師|「不知道。我拿到的時候就是這樣了。」": "v105", "高老師|「沒關係。」": "v106", "高老師|「昨晚睡得好嗎？」": "v107", "高老師|「老房子，水管會響。」": "v108", "高老師|「今天就到這裡。明天見。」": "v109", "護理長|「來，今天的。」": "v110", "護理長|「高老師說你這兩天比較累。來，喝水，我看你吞。」": "v111", "年輕的你|「不要出聲。走到樓梯口就好了。」": "v112", "小孩的聲音|「大哥哥，外面真的有海嗎？」": "v113", "老王|「……又是你。」": "v114", "老王|「我沒看到。」": "v115", "護理長|「秀琴阿嬤昨天夜裡走了。睡夢中走的，很安詳。」": "v116", "護理長|「這個年紀，是福氣。」": "v117", "高老師|「她昨天跟你聊得很開心。」": "v118", "老周|「……簡順天。」": "v119", "老周|「張秀琴。」": "v120", "牆裡的聲音|「你今天比較晚。我敲了三輪。」": "v121", "牆裡的聲音|「你昨天沒有來。」": "v122", "牆裡的聲音|「我敲了。你沒有應。牆上那一道，我還是刻了。第七道。」": "v123", "牆裡的聲音|「是阿蘭姨的糖。」": "v124", "牆裡的聲音|「她的糖都放在圍裙左邊的口袋。」": "v125", "牆裡的聲音|「這一行不是你寫的。」": "v126", "牆裡的聲音|「你寫『的』，最後一筆會往上勾。他不會。」": "v127", "牆裡的聲音|「白天的人。」": "v128", "牆裡的聲音|「我沒有看過他。我只聽過他的鞋子。」": "v129", "牆裡的聲音|「是你教我寫字的。」": "v130", "牆裡的聲音|「你說，『的』要這樣勾，才不會倒下來。」": "v131", "牆裡的聲音|「下次帶糖來。這是換的。」": "v132", "牆裡的聲音|「你上次也不給我看。」": "v133", "牆裡的聲音|「後來，你就分不出來了。」": "v134", "牆裡的聲音|「你不是鬼。」": "v135", "牆裡的聲音|「你還不是。」": "v136", "牆裡的聲音|「你以前會敲。」": "v137", "牆裡的聲音|「回去。他今天會早五分鐘。」": "v138"}/*END*/;
   let vAudio = null;
   function voice(who, text) {
     if (vAudio) { try { vAudio.pause(); } catch (e) { /* ignore */ } vAudio = null; }
@@ -1071,7 +1103,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     const src = await load(key);
     if (curKey !== forKey) return;
     blinkImg.src = src;
-    try { if (blinkImg.decode) await blinkImg.decode(); } catch (e) { /* ignore */ }
+    /* never wait on the decode for long: a page that is not being painted may leave it pending, and the story must go on */
+    try { if (blinkImg.decode) await Promise.race([blinkImg.decode(), sleep(700)]); } catch (e) { /* ignore */ }
     if (curKey !== forKey) return;
     clipFrame(blinkImg, EYES_AT[forKey]);
     blinkImg.classList.add('on');
@@ -1197,6 +1230,12 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       m.textContent = S.mine;
       d.appendChild(m); el.appendChild(d);
     }
+    [S.fake, S.fake2].forEach((t) => {
+      if (!t) return;
+      const d = document.createElement('div'), f = document.createElement('span');
+      f.className = 'fake' + (S.checked ? ' cut' : ''); f.textContent = t;
+      d.appendChild(f); el.appendChild(d);
+    });
     if (!S.notes.length && !S.mine) {
       const d = document.createElement('div'); d.className = 'faint'; d.textContent = '（後面都是空白的）';
       el.appendChild(d);
@@ -1247,8 +1286,17 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   $('howBtn').addEventListener('click', (e) => { e.stopPropagation(); openGuide(); });
   $('startBtn').addEventListener('click', (e) => {
     e.stopPropagation();
-    if (startResolve) { const r = startResolve; startResolve = null; r(); }
+    if (startResolve) { const r = startResolve; startResolve = null; r('new'); }
   });
+  $('contBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (startResolve) { const r = startResolve; startResolve = null; r('n2'); }
+  });
+  /* the state at the end of the first night is kept, so the second night can be started from the cover */
+  function saveGame() { try { localStorage.setItem('qiku_save2', JSON.stringify(S)); } catch (e) { /* storage unavailable */ } }
+  function loadGame() {
+    try { const o = JSON.parse(localStorage.getItem('qiku_save2')); return o && Array.isArray(o.notes) ? o : null; } catch (e) { return null; }
+  }
   $('cover').addEventListener('click', (e) => {
     e.stopPropagation();
     if (clicks === 1 && !autoSound) return; /* the very first tap only starts the sound */
@@ -1264,7 +1312,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     const cover = $('cover');
     cover.classList.remove('skip');
     cover.hidden = false;
-    await new Promise((resolve) => { startResolve = resolve; });
+    $('contBtn').hidden = !N2_ON || !loadGame();
+    const mode = await new Promise((resolve) => { startResolve = resolve; });
     let seen = false;
     try { seen = localStorage.getItem('qiku_guide') === '1'; } catch (e) { seen = false; }
     if (!seen) {
@@ -1274,6 +1323,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     cover.hidden = true;
     audio();
     clear();
+    if (mode === 'n2' || (N2_ON && /[?&]scene=n2(&|$)/.test(location.search))) return 'n2';
     setBox('title', '第一晚　敲四下');
     /* the rhyme is spoken as it appears (clips made by tools/gen_narration.py; they follow the 人聲 switch) */
     const speak = (name) => {
@@ -1288,6 +1338,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     await sleep(2300);
     bigText('');
     await knock(4, 0.55);
+    return 'new';
   }
 
   async function wake() {
@@ -1661,7 +1712,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     await it('「這是你第七次來了。」');
     const g = await choose(['「我明天再來。」', '「第七次？什麼意思？」', '（不說話，往後退）']);
     if (g === 0) {
-      S.trust += 2;
+      S.trust += 2; S.candy = true;
       await it('「你每次都這樣說。」');
       await narr('縫裡安靜了一下。');
       await it('「帶糖來。」');
@@ -1747,26 +1798,598 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     row('懷舊治療', S.alert >= 3 ? '你說了很多' : S.alert >= 1 ? '你說了一些' : '你幾乎什麼都沒說');
     row('筆記本', '記下 ' + S.notes.length + ' 件事，被塗掉 1 行');
     panel.appendChild(box);
-    prompt('這是原型版本，目前只做到第一晚。第二晚「點名」還在製作中。');
-    await choose(['從頭再玩一次']);
-    $('bookBtn').hidden = true;
-    run();
+    track('玩完：第一晚', summary());
+    prompt(N2_ON ? '第一晚結束了。進度已經記下來，之後可以從封面直接進第二晚。' : '這是原型版本，目前只做到第一晚。第二晚「點名」還在製作中。');
+    for (;;) {
+      const c = await choose(N2_ON ? ['留言給作者', '繼續　第二晚「點名」', '從頭再玩一次'] : ['留言給作者', '從頭再玩一次']);
+      if (c !== 0) return N2_ON ? c - 1 : 1;
+      await openFeedback('第一晚', box.innerText);
+    }
   }
 
-  async function run() {
+  /* ---------- feedback ----------
+     Messages go to a Google Form the author owns (answers are visible to the author only).
+     url = the form's .../formResponse address; type / name / msg / info = the entry.NNN ids of its four questions.
+     The same form also counts plays: track() adds a row when a night is started or finished. Each browser carries
+     a random id (nothing personal), so rows can be counted per player. Nothing is sent from a local preview. */
+  const FEEDBACK = /*FEEDBACK*/{ url: 'https://docs.google.com/forms/d/e/1FAIpQLSdJfXowsJbpPZ95_C5MPFC1AgQc8HmzNlryO3lkaMttkAynmg/formResponse', type: 'entry.1415074371', name: 'entry.999652164', msg: 'entry.1273670212', info: 'entry.1389831659' }/*END*/;
+  let vid = '';
+  try {
+    vid = localStorage.getItem('qiku_vid') || '';
+    if (!vid) { vid = Math.random().toString(36).slice(2, 10); localStorage.setItem('qiku_vid', vid); }
+  } catch (e) { vid = 'x' + Math.random().toString(36).slice(2, 9); }
+  function formSend(type, name, msg, info) {
+    const body = new URLSearchParams();
+    if (FEEDBACK.type) body.append(FEEDBACK.type, type);
+    if (FEEDBACK.name && name) body.append(FEEDBACK.name, name);
+    if (FEEDBACK.msg && msg) body.append(FEEDBACK.msg, msg);
+    if (FEEDBACK.info) body.append(FEEDBACK.info, 'id=' + vid + (info ? '｜' + info : ''));
+    /* the form answers from another origin, so the reply cannot be read: no network error is taken as sent */
+    return fetch(FEEDBACK.url, { method: 'POST', mode: 'no-cors', body: body, keepalive: true });
+  }
+  function track(type, info) {
+    if (!FEEDBACK.url || /^(localhost|127\.|\[::1\])/.test(location.hostname) || location.protocol === 'file:') return;
+    try { const p = formSend(type, '', '', info); if (p && p.catch) p.catch(() => {}); } catch (e) { /* counting must never break the game */ }
+  }
+  const summary = () => { const b = panel.querySelector('.end'); return b ? b.innerText.replace(/\s*[\r\n]+\s*/g, '／') : ''; };
+  let fbResolve = null, fbInfo = '';
+  function openFeedback(where, summary) {
+    fbInfo = where + '｜' + String(summary || '').replace(/\s*[\r\n]+\s*/g, '／');
+    $('fbState').textContent = '';
+    $('fbSend').disabled = false;
+    $('fb').hidden = false;
+    $('fbMsg').focus();
+    return new Promise((resolve) => { fbResolve = resolve; });
+  }
+  $('fbClose').addEventListener('click', () => {
+    $('fb').hidden = true;
+    if (fbResolve) { const r = fbResolve; fbResolve = null; r(); }
+  });
+  $('fbSend').addEventListener('click', async () => {
+    const msg = $('fbMsg').value.trim();
+    if (!msg) { $('fbState').textContent = '還沒有寫東西。'; $('fbMsg').focus(); return; }
+    if (!FEEDBACK.url) { $('fbState').textContent = '留言功能還沒有接上，這則沒有送出去。'; return; }
+    $('fbSend').disabled = true;
+    $('fbState').textContent = '送出中……';
+    try {
+      await formSend('留言', $('fbName').value.trim() || '（沒有留名字）', msg, fbInfo);
+      $('fbMsg').value = '';
+      $('fbState').textContent = '收到了。謝謝你。';
+    } catch (e) {
+      $('fbState').textContent = '沒有送出去，可能是網路的關係。再按一次試試。';
+    }
+    $('fbSend').disabled = false;
+  });
+
+  /* ================= second night: 點名 ================= */
+  async function raps(n, vol) { for (let i = 0; i < n; i++) { thud(vol); await sleep(520); } }
+
+  async function title2() {
+    clear(); art(null); setWhen('七窟'); setGoal('');
+    setBox('title', '第二晚　點名');
+    bigText('念到名字的人，');
+    await sleep(2000);
+    bigText('要答「有」。');
+    await sleep(2300);
+    bigText('');
+  }
+
+  const people2 = {
+    zhou: { label: '走廊上有人在喊名字', sub: '老周' },
+    wu: { label: '翻著帳本的先生', sub: '吳會計' },
+    xiu: { label: '活動室的歌聲', sub: '秀琴阿嬤' },
+    mu: { label: '中庭的大榕樹', sub: '木伯' },
+    lan: { label: '餐廳', sub: '蘭嬸' }
+  };
+
+  async function visit2(k) {
+    clear();
+    if (k === 'zhou') {
+      art('zhou');
+      await narr('老周站在走廊正中央，面對一整條空走廊。兩手攤在胸前，像拿著一張看不見的紙。');
+      await say('老周', '「點名！」');
+      await say('老周', '「林阿土。」');
+      await narr('他停下來，等。沒有人答。');
+      await say('老周', '「張金水。」');
+      await narr('又停。走廊盡頭的窗簾動了一下。');
+      const c = await choose(['（拿出筆記本，一個一個抄下來）', '（站到他面前，聽他念完）', '「老先生，這些人是誰？」']);
+      if (c === 0) {
+        await say('老周', '「許萬得。陳有福。黃清標。李火旺。蔡文進。」');
+        await narr('你跟著寫。他念得很慢，每念一個就停一下，剛好夠你抄。');
+        await say('老周', '「王再發。吳天賜。鄭松柏。劉阿坤。郭榮華。謝木生。簡順天。」');
+        await narr('十四個名字。念完，他把那張看不見的紙折好，收進胸前的口袋。');
+        await say('老周', '「周振國。」');
+        await say('老周', '「有。」');
+        await narr('只有這一個，他自己答。');
+        S.names = true;
+        note('老周每天早上點名，十四個名字，沒有人答「有」。');
+        note('林阿土、張金水、許萬得、陳有福、黃清標、李火旺、蔡文進、王再發、吳天賜、鄭松柏、劉阿坤、郭榮華、謝木生、簡順天。');
+      } else if (c === 1) {
+        await narr('他一個一個念下去。十四個名字，每念一個就停一下，等人答「有」。');
+        art('zhou2');
+        await narr('念完，他盯著你。');
+        await say('老周', '「你怎麼不答？」');
+        await narr('你不知道該說什麼。他又看了你一會兒，肩膀鬆了下來。');
+        await say('老周', '「喔。你是掃地的。掃地的不用點名。」');
+        note('老周點了十四個名字，沒有人答。他說我是掃地的，不用點名。');
+      } else {
+        await say('老周', '「報告，是第三批。」');
+        art('zhou2');
+        await narr('他的眼神忽然變得很遠。');
+        await say('老周', '「一個禮拜。一個禮拜就剩我一個。」');
+        await narr('說完，他腳跟一併，又從第一個名字開始念。');
+        note('老周說他點的那些人是「第三批」。一個禮拜，就剩他一個。');
+      }
+    }
+    if (k === 'wu') {
+      art('wu');
+      await say('吳會計', '「早安。您是……請等我一下。」');
+      await narr('他翻開帳本，手指順著一行一行往下找。');
+      await say('吳會計', '「有了。新入住一名，前天。」');
+      await narr('他的手指沒有停。又往前翻了幾頁。再幾頁。');
+      art('wu2', 'shock');
+      await say('吳會計', '「新入住一名。新入住一名……」');
+      art('ledger');
+      await narr('同一行字，同一個名字。他一共找到七次。日期都不一樣。');
+      const c = await choose(['「那是我的名字嗎？」', '（假裝沒看見）']);
+      if (c === 0) {
+        art('wu2');
+        await say('吳會計', '「是我記重複了。對不起，是我記重複了。」');
+        art('ledger');
+        await narr('他拿出尺，把前面六行一行一行劃掉。劃得很直。');
+        art('wu');
+        await say('吳會計', '「這樣帳就平了。」');
+        note('吳會計的帳本裡，「新入住一名」寫了七次。都是我的名字，日期不一樣。他說是記重複了。');
+      } else {
+        art('wu');
+        await narr('他闔上帳本，對你笑了一下，像什麼都沒發生。');
+        await say('吳會計', '「今年走了五位。去年三位。一年比一年多。」');
+        note('吳會計說，走的人一年比一年多。他的帳本裡有一行字重複了很多次，我沒看清楚。');
+      }
+    }
+    if (k === 'xiu') {
+      art('xiu');
+      await narr(S.seen.xiu ? '她還是坐在老位子，閉著眼睛唱歌。同一首。' : '活動室裡，一位阿嬤閉著眼睛，雙手握在胸前唱歌。');
+      await say('秀琴阿嬤', '「月娘光光照窗前，阿母等囝仔轉來——」');
+      await narr('隔壁桌有人用指節敲著桌面，替她打拍子。');
+      await raps(4, 0.22);
+      art('xiu2', 'shock');
+      await narr('歌斷了。她的肩膀縮起來，眼睛睜得很大。');
+      await say('秀琴阿嬤', '「毋通開門。四下，毋通開門。」');
+      const c = await choose(['「阿嬤，是誰在敲？」', '（握住她的手，等她平靜下來）']);
+      if (c === 0) {
+        S.pressedXiu = true; S.alert += 1;
+        await say('秀琴阿嬤', '「是伊。伊猶在下面。」');
+        await say('秀琴阿嬤', '「彼一暝有人牽伊的手，行到樓梯口。是我去講的。我驚，我真正驚——」');
+        await narr('她看著你的臉，看了很久。');
+        await say('秀琴阿嬤', '「……你的手，猶閣遮爾大。」');
+        art('xiu');
+        await narr('然後那個眼神散了。她又笑起來。');
+        await say('秀琴阿嬤', '「你是新來的喔？我唱歌給你聽。」');
+        note('秀琴阿嬤聽到敲四下很害怕。她說那一晚有人牽著「伊」走到樓梯口，是她去講的。她看著我的手。');
+      } else {
+        await narr('她的手很冰。過了很久，才慢慢不抖了。');
+        art('xiu');
+        await say('秀琴阿嬤', '「多謝。你的手真燒。」');
+        await say('秀琴阿嬤', '「較早嘛有一個少年的，手真燒。逐工牽一个囝仔，佇走廊行來行去。」');
+        note('秀琴阿嬤聽到敲四下很害怕。她說以前有個年輕人，每天牽著一個囝仔在走廊走。');
+      }
+    }
+    if (k === 'mu') {
+      art('mu');
+      await narr('木伯跪在同一個地方。昨天種下去的花，他一株一株挖起來，又照原樣種回去。');
+      const c = await choose(['（蹲在花圃外面，看那排花盆）', '「木伯，底下有什麼？」']);
+      if (c === 0) {
+        art('pots');
+        await narr('花圃邊排著一列舊花盆。你順手拿起第三個，想看看盆底。');
+        art('mu2', 'shock');
+        await narr('他一把按住。力氣大得不像七十幾歲的人。');
+        await say('木伯', '「你的。」');
+        await narr('他把花盆放回原位，轉了半圈，對齊。然後就不再理你了。');
+        note('木伯不讓我動榕樹下第三個花盆。他說：「你的。」');
+      } else {
+        await narr('他的鏟子停了。');
+        await say('木伯', '「十四。」');
+        await narr('過了很久。');
+        art('mu2');
+        await say('木伯', '「閣一个。猶未。」');
+        await narr('他抬起頭。看的不是你，是三樓的窗戶。');
+        note('我問木伯花圃底下有什麼。他說：「十四。」又說還有一個，還沒。');
+      }
+    }
+    if (k === 'lan') {
+      art('lan');
+      await say('蘭嬸', '「來，呷飯。今仔日有滷肉。」');
+      await narr('她照樣盛了兩碗。一碗給你，一碗放在旁邊的空位上。');
+      const opts = S.candy ? ['「蘭嬸，妳有沒有糖？」', '「那碗飯，等一下要端去哪裡？」'] : ['「那碗飯，等一下要端去哪裡？」', '（安靜吃飯）'];
+      const c = await choose(opts);
+      if (S.candy && c === 0) {
+        await narr('她的手在圍裙上擦了擦，從左邊口袋摸出一顆玻璃紙包的糖。');
+        await say('蘭嬸', '「是欲予彼个囝仔的，著無？」');
+        const d = await choose(['「對。」', '「是我自己要吃的。」']);
+        S.gotCandy = true;
+        if (d === 0) {
+          art('lan2');
+          await narr('她沒有笑。把糖放進你的手心，再把你的手指一根一根合起來。');
+          await say('蘭嬸', '「共伊講，阿蘭姨猶會記得伊愛呷甜。」');
+          art('lan');
+          note('蘭嬸給我一顆糖，要我帶給「那個囝仔」。她說她還記得他愛吃甜。');
+        } else {
+          await say('蘭嬸', '「老人呷甜，會蛀齒喔。」');
+          await narr('她還是把糖塞給了你。');
+          note('跟蘭嬸要到一顆糖。');
+        }
+      } else if (opts[c].indexOf('那碗飯') >= 0) {
+        await narr('她想了一下，像在想一件再平常不過的事。');
+        await say('蘭嬸', '「端去下跤啊。燒水彼間的門口。逐工攏按呢。」');
+        art('lan2');
+        await say('蘭嬸', '「……奇怪。我是端去予啥人？」');
+        art('lan');
+        note('蘭嬸每天把多盛的那碗飯端到樓下，燒水那間的門口。她不記得是端給誰。');
+      } else {
+        await narr('你吃完了。旁邊那碗飯還在冒煙。');
+        note('蘭嬸今天也多盛了一碗飯。');
+      }
+    }
+  }
+
+  async function day2() {
+    setWhen('第二天・白天'); setGoal('多聽一點（可以去 3 個地方）');
+    clear(); art('hall');
+    await narr('早餐以後，你在走廊上看見院長。他從辦公室出來，鎖了門。走兩步，又回頭鎖了第二道。');
+    await narr('這裡的房門，夜裡都不鎖。只有那一間，白天也鎖著。');
+    note('院長室白天也上兩道鎖。這裡其他的門，夜裡都不鎖。');
+    let left = 3;
+    while (left > 0) {
+      clear(); art('hall');
+      setGoal('多聽一點（還可以去 ' + left + ' 個地方）');
+      prompt('離下午的課還有一點時間。今天想去哪裡？');
+      const keys = Object.keys(people2).filter((k) => !S.seen2[k]);
+      const i = await choose(keys.map((k) => ({ t: people2[k].label, sub: people2[k].sub })));
+      S.seen2[keys[i]] = true;
+      await visit2(keys[i]);
+      left -= 1;
+    }
+  }
+
+  async function therapy2() {
+    setWhen('第二天・下午'); setGoal('參加高老師的懷舊治療'); clear(); art('hall');
+    await narr('走廊上的鐘敲了兩下。大家又排成一列。今天你知道隊伍要去哪裡了。');
+    clear(); art('gao');
+    await say('高老師', '「今天我們看一張合照。」');
+    await narr('他從牛皮紙信封裡抽出一張照片，放在桌上，轉向你。');
+    art('photo_staff');
+    await narr('一九五三年。二十幾個人站成三排，穿著白衣服，背後就是這棟樓。');
+    await narr('前排有一個人被剪掉了。剪得很仔細，只留下半邊臉頰，和臉頰上的一顆痣。');
+    await narr('後排最旁邊，站著一個拿拖把的年輕人。他的眉毛和眼睛，你每天早上都在鏡子裡看到。');
+    art('gao');
+    await say('高老師', '「這張裡面，有沒有你覺得眼熟的人？」');
+    art('photo_staff');
+    const c = await choose(['「後排那個年輕人，很像我。」', '「這個被剪掉的人是誰？」', '「沒有。都不認識。」']);
+    if (c === 0) {
+      S.alert += 2; S.admit = true;
+      art('gao2', 'shock');
+      await narr('他沒有說話。把照片翻過來。背面用鉛筆寫著一排名字，其中一個被擦掉了。');
+      art('gao');
+      await say('高老師', '「人到了這個年紀，看誰都像自己。」');
+      await say('高老師', '「不過既然你有興趣，再給你看一張。」');
+      art('photo_door');
+      await narr('第二張。同一個年輕人，蹲在一扇門前。門縫底下，伸出一隻很小的手。');
+      await narr('兩個人的手指勾在一起。');
+      art('gao');
+      await say('高老師', '「好了。看太多會累。」');
+      note('一九五三年的合照：後排有個拿拖把的年輕人，長得像我。另一張照片，他跟門縫底下一隻小手勾著手指。');
+    } else if (c === 1) {
+      S.alert += 1;
+      art('gao');
+      await say('高老師', '「不知道。我拿到的時候就是這樣了。」');
+      art('photo_staff');
+      await narr('他用拇指蓋住那半邊臉頰。蓋了一下，才把手移開。');
+      note('一九五三年的合照，前排有一個人被剪掉，只剩半邊臉頰和一顆痣。');
+    } else {
+      art('gao');
+      await say('高老師', '「沒關係。」');
+      await narr('他把照片收回信封。收進去之前，又對著你停了兩秒。');
+    }
+    art('gao');
+    await say('高老師', '「昨晚睡得好嗎？」');
+    const e = await choose(['「一覺到天亮。」', '「半夜好像有人在敲東西。」']);
+    if (e === 1) {
+      S.alert += 1;
+      art('gao2');
+      await say('高老師', '「老房子，水管會響。」');
+      await narr('他低頭寫了幾個字。');
+      art('gao');
+    }
+    await say('高老師', '「今天就到這裡。明天見。」');
+  }
+
+  async function pill2() {
+    setWhen('第二天・傍晚'); setGoal('決定要不要吃晚上的藥'); clear(); art('nurse');
+    await narr('傍晚。藥車的輪子有一顆會響，從走廊那頭一路響過來。');
+    await say('護理長', '「來，今天的。」');
+    await narr(S.took ? '跟昨天一樣的白色藥丸。昨晚你吃了，睡得很沉，沉得不像睡覺。' : '跟昨天一樣的白色藥丸。昨晚那一顆，還壓在你的枕頭套裡。');
+    const c = await choose(['（吞下去）', '（藏在舌頭底下）']);
+    if (c === 0) {
+      S.took2 = true;
+      await narr('你吞了下去。她點點頭，在本子上打了一個勾。');
+    } else if (S.alert >= 6) {
+      S.took2 = true;
+      art('nurse2');
+      await say('護理長', '「高老師說你這兩天比較累。來，喝水，我看你吞。」');
+      await narr('她扶著你的下巴，等到你的喉嚨動了，才鬆手。');
+    } else {
+      await narr('你喝了一口水，喉嚨動了一下。她在本子上打了一個勾，推著車走了。');
+      art('pill');
+      await narr('第二顆。你把它跟昨天那顆放在一起。');
+    }
+  }
+
+  async function room2() {
+    setWhen('第二天・夜晚'); setGoal('把今天的事記下來'); clear(); art('room');
+    bgmHush = true;
+    await narr('天一黑，雨又來了。跟昨晚一樣大。');
+    bgmHush = false; bgmHaunt = true; bgmDeep = true;
+    art('notebook');
+    await narr('你把筆記本從床墊底下抽出來，想把今天聽到的事抄進去。');
+    S.fake = '晚上的藥要吃。吃了才睡得好。';
+    showPaper(false, false);
+    await narr('昨天被塗掉的那一行下面，多了一行。');
+    await narr('是你的字。至少，很像你的字。');
+    if (S.took2) await narr('你已經吃了。那一行字，看起來很有道理。');
+    else await narr('你不記得寫過這一行。');
+    $('bookBtn').classList.add('new');
+  }
+
+  async function drugged2() {
+    clear(); art(null); setWhen('第二天・深夜'); setGoal('');
+    await narr('黑。');
+    art('photo_hall');
+    await narr('又是那條走廊。這一次是晚上，只有盡頭的窗戶透著一點光。');
+    art('dream_hand');
+    await narr('你的手很年輕。手裡牽著另一隻手，很小，掌心都是汗。');
+    await say('年輕的你', '「不要出聲。走到樓梯口就好了。」');
+    await say('小孩的聲音', '「大哥哥，外面真的有海嗎？」');
+    await narr('你沒有回答。背後很遠的地方，有人在唱歌。唱到一半，停了。');
+    await narr('然後是很多人的腳步聲。');
+    art(null);
+    await knock(4, 0.5);
+    await narr('四下。');
+    await narr('那隻小手，從你的手裡被抽走了。');
+    note('又夢到那條走廊。我牽著一個小孩往樓梯口走。有人在唱歌，唱到一半停了。');
+  }
+
+  async function office() {
+    S.office = true;
+    clear(); art('hall'); setGoal('看看院長室裡鎖著什麼');
+    await narr('一樓。院長室的門上，兩道鎖都鎖著。');
+    await narr('你踮起腳，手伸到門框上面。指尖碰到一把鑰匙。');
+    await narr('你又知道了。');
+    art('office');
+    await narr('桌上有一本硬皮名冊：歷年住民異動。');
+    await narr('你翻到最近兩年。今年五位，去年三位。每個名字後面都蓋著同一個章：自然死亡。');
+    await narr('每一位走的前一天，備註欄都有一行差不多的小字。');
+    await narr('「前一日情緒激動，提及往事。」');
+    note('院長室的名冊：這兩年走的八個人，都是「自然死亡」。每個人走的前一天，都「情緒激動，提及往事」。');
+    await narr('最下面的抽屜另外上了鎖。鎖很新。');
+    const c = await choose(['（用拆信刀撬開）', '（不要碰）']);
+    if (c === 0) {
+      S.pried = true;
+      await narr('裡面是一本私帳，和幾綑用橡皮筋紮好的鈔票。');
+      await narr('伙食費、修繕費、藥品費。每一筆都被改小了，差額記在另一欄。');
+      await narr('他鎖門，只是為了這個。');
+      note('院長在做假帳、藏錢。他鎖門是為了這個，跟夜裡的聲音無關。');
+    } else {
+      await narr('你把名冊放回原來的位置，連角度都對齊。');
+    }
+  }
+
+  async function night2() {
+    clear(); art(null); setWhen('第二天・深夜'); setGoal('等巡邏的人走過去');
+    art('room');
+    await narr('半夜。你睜著眼睛，聽雨。');
+    await knock(4, 0.4);
+    await narr('又是四下。');
+    await narr('你把房門開了一條縫，沒有馬上出去。');
+    art('hall_night');
+    await narr('手電筒的光從樓梯口上來，掃過走廊，又下去了。你看了床頭的鐘：一點十分。');
+    await narr('你等。光第二次上來，是一點三十五分。第三次，兩點整。');
+    S.times = true;
+    note('夜班的手電筒上樓的時間：一點十分、一點三十五分、兩點整。');
+    await tip('巡邏有固定的間隔。挑一個他剛走的時間出去。');
+    const c = await choose(['（兩點零五分出去）', '（兩點二十分出去）', '（今晚不出去了）']);
+    if (c === 2) {
+      art('room');
+      await narr('你關上門，回到床上。敲擊聲又響了兩輪，然後停了。');
+      await narr('很晚的時候，你好像聽見有人在唱歌。唱到一半，停了。');
+      return;
+    }
+    if (c === 1) {
+      S.alert += 2; S.caught = true;
+      art('wang');
+      await narr('你才走到樓梯口，光就照在你的臉上。兩點二十五分。');
+      await say('老王', '「……又是你。」');
+      await narr('他看了你很久。然後把手電筒壓低，側過身，讓出了樓梯。');
+      await say('老王', '「我沒看到。」');
+      await narr('他在一本小冊子上寫了幾個字，走了。');
+      art('hall');
+    } else {
+      await narr('光剛剛下去。你有二十分鐘。');
+    }
+    setGoal('決定今晚要去哪裡');
+    const d = await choose(['（去一樓的院長室）', '（直接下地下室）']);
+    if (d === 0) {
+      await office();
+      art('hall');
+      await knock(4, 0.5);
+      await narr('地板底下又敲了四下。比剛才急。');
+      const e = await choose(['（下去找他）', '（回房間）']);
+      if (e === 1) {
+        await narr('你回到二樓。經過活動室的時候，門縫底下透著光，有人在裡面很輕地唱歌。');
+        await narr('唱到一半，歌停了。');
+        return;
+      }
+    }
+    await meet2();
+  }
+
+  async function meet2() {
+    S.went2 = true;
+    clear(); setGoal('跟牆裡的人說話'); art('basement');
+    await narr('洗衣房。鍋爐。同一盞壞掉的日光燈。');
+    art('crack');
+    if (S.met) {
+      await it('「你今天比較晚。我敲了三輪。」');
+    } else {
+      S.met = true;
+      await narr('牆角的踢腳板裂開一道縫。縫裡有一隻眼睛，正在看你。');
+      await it('「你昨天沒有來。」');
+      await it('「我敲了。你沒有應。牆上那一道，我還是刻了。第七道。」');
+      await narr('你不知道該說什麼。那隻眼睛沒有眨。');
+      await it('「我是十一號。你以前不是這樣叫我的。」');
+    }
+    if (S.gotCandy) {
+      const a = await choose(['（把糖從縫裡塞進去）', '（先不拿出來）']);
+      if (a === 0) {
+        S.gave = true; S.trust += 2;
+        await narr('縫裡安靜了很久。只聽到玻璃紙的聲音，很慢，很小心。');
+        await it('「是阿蘭姨的糖。」');
+        await it('「她的糖都放在圍裙左邊的口袋。」');
+      }
+    }
+    await narr('你想起筆記本裡多出來的那一行。');
+    const b = await choose(['（把筆記本從縫裡塞進去）', '（不給他看）']);
+    if (b === 0) {
+      S.checked = true; S.trust += 1;
+      await narr('一隻手把筆記本接了過去。翻頁的聲音很快，像他早就知道每一頁寫了什麼。');
+      await it('「這一行不是你寫的。」');
+      art('notebook');
+      await narr('筆記本被推了出來，翻在最後一頁。「晚上的藥要吃」那一行，被指甲劃了一道。');
+      art('crack');
+      await it('「你寫『的』，最後一筆會往上勾。他不會。」');
+      const q = await choose(['「他是誰？」', '「你怎麼會認得我的字？」']);
+      if (q === 0) {
+        await it('「白天的人。」');
+        await it('「我沒有看過他。我只聽過他的鞋子。」');
+      } else {
+        S.trust += 1;
+        await it('「是你教我寫字的。」');
+        await it('「你說，『的』要這樣勾，才不會倒下來。」');
+      }
+      if (!S.gave) { S.candy = true; await it('「下次帶糖來。這是換的。」'); }
+      note('十一號認得我的字。我寫「的」，最後一筆會往上勾。「晚上的藥要吃」那一行，不是我寫的。');
+    } else {
+      await it('「你上次也不給我看。」');
+      await it('「後來，你就分不出來了。」');
+    }
+    await narr('你看著那面牆。牆的另一邊，他一定也看著。');
+    const k = await choose(['（在牆上敲四下）', '（不敲）']);
+    if (k === 0) {
+      S.knocked = true; S.trust += 1;
+      await knock(4, 0.35);
+      await narr('縫裡很久沒有聲音。');
+      await it('「你不是鬼。」');
+      await it('「你還不是。」');
+    } else {
+      await it('「你以前會敲。」');
+    }
+    await it('「回去。他今天會早五分鐘。」');
+    art(null);
+    await narr('上樓的時候，活動室的門縫底下透著光。有人在裡面，很輕地唱歌。');
+    await narr('唱到一半，歌停了。');
+  }
+
+  async function morning3() {
+    clear(); art(null); setWhen('第三天・早晨'); setGoal('');
+    art('room_day');
+    await narr('天亮了。雨停了。');
+    await narr('你先摸了床墊底下。筆記本還在。');
+    if (S.checked) {
+      await narr('被指甲劃過的那一行，還在。這一次，沒有人動過。');
+    } else {
+      S.fake2 = '聽話。';
+      showPaper(false, false);
+      await narr('「晚上的藥要吃」那一行底下，又多了兩個字。');
+    }
+    clear(); art('hall');
+    await narr('走廊很安靜。你過了一會兒才想到，是少了什麼。');
+    await narr('沒有歌聲。');
+    art('bed_empty');
+    await narr('活動室旁邊那間房，門開著。床單已經換過，鋪得很平。');
+    art('nurse');
+    await say('護理長', '「秀琴阿嬤昨天夜裡走了。睡夢中走的，很安詳。」');
+    await say('護理長', '「這個年紀，是福氣。」');
+    if (S.pressedXiu) {
+      art('gao');
+      await narr('高老師從你身邊經過，停了一下。');
+      await say('高老師', '「她昨天跟你聊得很開心。」');
+      await narr('他的聲音很輕，像在安慰你。');
+    }
+    art('zhou');
+    await narr('走廊中央，老周照常點名。十四個名字，一個也沒有少。');
+    await say('老周', '「……簡順天。」');
+    await narr('他停了一下。今天，他沒有念自己的名字。');
+    art('zhou2');
+    await say('老周', '「張秀琴。」');
+    await narr('沒有人答。');
+  }
+
+  async function ending2() {
+    clear(); art(null); setWhen('第二晚　完'); setGoal('');
+    const box = document.createElement('div'); box.className = 'end';
+    const h = document.createElement('h2'); h.textContent = '第二晚　完'; box.appendChild(h);
+    const row = (a, b) => { const d = document.createElement('div'); const x = document.createElement('b'); x.textContent = a + '　'; const y = document.createElement('span'); y.textContent = b; d.appendChild(x); d.appendChild(y); box.appendChild(d); };
+    row('晚上的藥', S.took2 ? '吃了' : '沒吃');
+    row('點名', S.names ? '抄下了十四個名字' : S.seen2.zhou ? '聽了，沒有抄' : '沒有去聽');
+    row('院長室', S.office ? (S.pried ? '看了名冊，也撬開了抽屜' : '看了名冊') : '沒有進去');
+    row('牆裡的人', S.went2 ? (S.checked ? '他認出了不是你寫的那一行' : '他說你以後會分不出來') : S.took2 ? '你夢見牽著一隻小手' : '他敲了，你沒有下去');
+    row('敲牆', S.knocked ? '「你不是鬼。你還不是。」' : '沒有敲');
+    row('懷舊治療', S.admit ? '你認出了照片裡的人' : S.alert >= 4 ? '你說了一些' : '你幾乎什麼都沒說');
+    row('秀琴阿嬤', S.pressedXiu ? '她走的前一天，你問了她的歌' : '夜裡走了');
+    panel.appendChild(box);
+    track('玩完：第二晚', summary());
+    prompt('目前做到第二晚。第三晚「看海的人」還在製作中。');
+    const c = await choose(['重玩第二晚', '從頭再玩一次']);
+    $('bookBtn').hidden = true;
+    run(c === 0 ? 'n2' : '');
+  }
+
+  async function run(force) {
     reset();
     tapResolve = null; typing = null; nextBtn.hidden = true; choices.textContent = ''; tally.hidden = true; bigText('');
-    await opening();
-    /* preview shortcut: play.html?scene=carve jumps straight to the carving scene, then the story starts as usual */
-    if (/[?&]scene=carve(&|$)/.test(location.search)) { setWhen('預覽：刻痕'); art('crack'); await sleep(900); await carve(); art(null); }
-    await wake();
-    await day();
-    await therapy();
-    await pill();
-    await room();
-    if (S.took) await drugged(); else await night();
-    await morning();
-    await ending();
+    let mode = force || await opening();
+    if (N2_ON && /[?&]scene=n2(&|$)/.test(location.search)) mode = 'n2'; /* preview shortcut: straight into the second night */
+    track(mode === 'n2' ? '開始：第二晚' : '開始：第一晚');
+    if (mode === 'n2') {
+      const saved = loadGame();
+      if (saved) Object.assign(S, saved);
+      else { S.mine = '我今天才到這裡。我不記得這本筆記。'; S.notes = ['老周說：晚上樓下有人敲門，不要應。']; S.seen = { zhou: true }; }
+      S.hasBook = true; S.struck = true;
+      clear(); art(null);
+      $('bookBtn').hidden = false;
+    } else {
+      /* preview shortcut: play.html?scene=carve jumps straight to the carving scene, then the story starts as usual */
+      if (/[?&]scene=carve(&|$)/.test(location.search)) { setWhen('預覽：刻痕'); art('crack'); await sleep(900); await carve(); art(null); }
+      await wake();
+      await day();
+      await therapy();
+      await pill();
+      await room();
+      if (S.took) await drugged(); else await night();
+      await morning();
+      saveGame();
+      const again = (await ending()) === 1;
+      if (again) { $('bookBtn').hidden = true; run(); return; }
+      track('開始：第二晚', '接著第一晚');
+    }
+    await title2();
+    await day2();
+    await therapy2();
+    await pill2();
+    await room2();
+    if (S.took2) await drugged2(); else await night2();
+    await morning3();
+    await ending2();
   }
 
   run();

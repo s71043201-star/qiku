@@ -1,12 +1,15 @@
 """Directed voice build: split each line into phrases, vary pace and pitch per phrase,
-insert pauses, add per-role effects, and write one mp3 per line."""
-import re, json, os, sys, asyncio, hashlib
+insert pauses, add per-role effects, and write one mp3 per line.
+usage: python tools/gen_voice.py <七窟_原型 folder> [--all]
+By default only lines that have no clip yet are made (they get the next free v### numbers), so the
+existing clips keep their files. --all rebuilds every clip from scratch and renumbers them."""
+import re, json, os, sys, asyncio, hashlib, tempfile
 import numpy as np
 import edge_tts, miniaudio, lameenc
 
 root = sys.argv[1]
 SR = 24000
-cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tts-cache')
+cache_dir = os.path.join(tempfile.gettempdir(), 'qiku_tts_cache')  # not next to this file: the decoder cannot open non-ASCII paths
 os.makedirs(cache_dir, exist_ok=True)
 p = os.path.join(root, 'index.html')
 s = open(p, encoding='utf-8').read()
@@ -152,8 +155,15 @@ async def main():
     except Exception:
         cfg.update(CN)
         print('male voices: fallback')
+    old = {} if '--all' in sys.argv else json.loads(re.search(r"/\*VOICE\*/(.*?)/\*END\*/", s, re.S).group(1))
+    nxt = max([int(v[1:]) for v in old.values()] + [-1]) + 1
+    ids = {}
     plan = []
     for i, (who, text) in enumerate(seen):
+        if who + '|' + text in old:
+            continue
+        ids[i] = 'v%03d' % nxt
+        nxt += 1
         voice, br, bp, pm = cfg[who]
         lead, ph = phrases(text)
         direct = next((v for k, v in DIRECT.items() if k in text), None)
@@ -195,7 +205,7 @@ async def main():
     keys = list(tasks)
     res = await asyncio.gather(*[synth(v, t, r, pt, sem) for v, t, r, pt in keys])
     paths = dict(zip(keys, res))
-    vmap = {}
+    vmap = dict(old)
     for i, who, lead, segs in plan:
         chunks = [silence(lead)] if lead else []
         for voice, t, r, pt, vol, pause in segs:
@@ -204,13 +214,13 @@ async def main():
                 chunks.append(silence(pause))
         a = effects(who, np.concatenate(chunks))
         a = np.concatenate([silence(40), a, silence(120)])
-        vid = 'v%03d' % i
+        vid = ids[i]
         encode(a, os.path.join(root, 'voice', vid + '.mp3'))
         vmap[who + '|' + seen[i][1]] = vid
     html = open(p, encoding='utf-8').read()
     html2, k = re.subn(r"/\*VOICE\*/.*?/\*END\*/", lambda m: '/*VOICE*/' + json.dumps(vmap, ensure_ascii=False) + '/*END*/', html, count=1, flags=re.S)
     assert k == 1
     open(p, 'w', encoding='utf-8').write(html2)
-    print('lines', len(seen), 'phrases', len(keys), 'ok', len(vmap))
+    print('lines', len(seen), 'new', len(ids), 'phrases', len(keys), 'clips', len(vmap))
 
 asyncio.run(main())
