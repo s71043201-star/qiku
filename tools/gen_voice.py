@@ -1,8 +1,9 @@
 """Directed voice build: split each line into phrases, vary pace and pitch per phrase,
 insert pauses, add per-role effects, and write one mp3 per line.
-usage: python tools/gen_voice.py <七窟_原型 folder> [--all]
+usage: python tools/gen_voice.py <七窟_原型 folder> [--all] [--only <text> ...]
 By default only lines that have no clip yet are made (they get the next free v### numbers), so the
-existing clips keep their files. --all rebuilds every clip from scratch and renumbers them."""
+existing clips keep their files. --all rebuilds every clip from scratch and renumbers them.
+--only makes just the missing lines that contain one of the given pieces of text."""
 import re, json, os, sys, asyncio, hashlib, tempfile
 import numpy as np
 import edge_tts, miniaudio, lameenc
@@ -146,6 +147,9 @@ def encode(a, path):
     open(path, 'wb').write(data)
 
 
+only = sys.argv[sys.argv.index('--only') + 1:] if '--only' in sys.argv else []
+
+
 async def main():
     sem = asyncio.Semaphore(3)
     try:
@@ -161,6 +165,8 @@ async def main():
     plan = []
     for i, (who, text) in enumerate(seen):
         if who + '|' + text in old:
+            continue
+        if only and not any(k in text for k in only):
             continue
         ids[i] = 'v%03d' % nxt
         nxt += 1
