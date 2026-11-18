@@ -638,8 +638,10 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   const imgs = [$('imgA'), $('imgB')], blinkImg = $('imgBlink');
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* The second night is finished but not released yet: it only runs in a local preview, or with ?n2=1 in the address. */
-  const N2_ON = !/[?&]n2=0(&|$)/.test(location.search) && (/^(localhost|127\.)/.test(location.hostname) || /[?&]n2=1(&|$)/.test(location.search));
+  /* The second night is released. (Adding ?n2=0 to the address hides it again, to see what a first-night-only build looks like.) */
+  const N2_ON = !/[?&]n2=0(&|$)/.test(location.search);
+  /* preview shortcuts (?scene=...) only work on the author's own machine, so nobody can skip a night online */
+  const DEV = /^(localhost|127\.)/.test(location.hostname);
   let S, history = [];
   function reset() {
     S = { alert: 0, trust: 0, took: false, went: false, met: false, answered: '', left: false,
@@ -1665,7 +1667,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     cover.hidden = true;
     audio();
     clear();
-    if (mode === 'n2' || (N2_ON && /[?&]scene=n2(&|$)/.test(location.search))) return 'n2';
+    if (mode === 'n2' || (DEV && /[?&]scene=n2(&|$)/.test(location.search))) return 'n2';
     setBox('title', '第一晚　敲四下');
     /* the rhyme is spoken as it appears (clips made by tools/gen_narration.py; they follow the 人聲 switch) */
     const speak = (name) => {
@@ -2744,7 +2746,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     reset();
     tapResolve = null; typing = null; nextBtn.hidden = true; choices.textContent = ''; tally.hidden = true; bigText('');
     let mode = force || await opening();
-    if (N2_ON && /[?&]scene=n2(&|$)/.test(location.search)) mode = 'n2'; /* preview shortcut: straight into the second night */
+    if (DEV && /[?&]scene=n2(&|$)/.test(location.search)) mode = 'n2'; /* preview shortcut: straight into the second night */
     track(mode === 'n2' ? '開始：第二晚' : '開始：第一晚');
     if (mode === 'n2') {
       const saved = loadGame();
