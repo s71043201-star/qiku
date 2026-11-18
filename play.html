@@ -1201,6 +1201,63 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     }
     setTimeout(() => { try { out.disconnect(); } catch (e) { /* ignore */ } }, 3000);
   }
+  /* a washing machine somewhere in the laundry room starts its spin cycle by itself: a clunk, the drum winding up
+     with an unbalanced thump that gets faster, a few seconds at full speed, then it winds down and stops. */
+  let spinNow = null, spinTimer = null;
+  function spin() {
+    const a = audio();
+    if (!a || spinNow) return;
+    const t = a.currentTime + 0.05, up = 2.6, hold = 3.5 + Math.random() * 2.5, down = 3.4, end = t + up + hold + down;
+    const out = a.createGain(); out.gain.value = 0;
+    if (a.createStereoPanner) { const sp = a.createStereoPanner(); sp.pan.value = -0.45; out.connect(sp); sp.connect(a.destination); } else out.connect(a.destination);
+    out.gain.setValueAtTime(0.34, t);
+    out.gain.setValueAtTime(0.34, t + up + hold); out.gain.linearRampToValueAtTime(0.0001, end);
+    const nodes = [];
+    const ramp = (prm, lo, hi) => { prm.setValueAtTime(lo, t); prm.exponentialRampToValueAtTime(hi, t + up); prm.setValueAtTime(hi, t + up + hold); prm.exponentialRampToValueAtTime(lo, end); };
+    /* the clunk of the relay and the drum taking up the slack */
+    const ck = a.createOscillator(), cg = a.createGain();
+    ck.type = 'square'; ck.frequency.setValueAtTime(140, t); ck.frequency.exponentialRampToValueAtTime(45, t + 0.09);
+    cg.gain.setValueAtTime(1.1, t); cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    ck.connect(cg); cg.connect(out); ck.start(t); ck.stop(t + 0.3);
+    /* the button itself: a hard little click just before it */
+    const bk = a.createOscillator(), bg = a.createGain();
+    bk.type = 'square'; bk.frequency.setValueAtTime(2100, t); bk.frequency.exponentialRampToValueAtTime(900, t + 0.02);
+    bg.gain.setValueAtTime(0.7, t); bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    bk.connect(bg); bg.connect(out); bk.start(t); bk.stop(t + 0.05);
+    /* the motor: a whine that climbs */
+    const m = a.createOscillator(), mf = a.createBiquadFilter(), mg = a.createGain();
+    m.type = 'sawtooth'; ramp(m.frequency, 38, 172); mf.type = 'lowpass'; mf.frequency.value = 620; mg.gain.value = 0.2;
+    m.connect(mf); mf.connect(mg); mg.connect(out); m.start(t); m.stop(end + 0.1); nodes.push(m);
+    const m2 = a.createOscillator(), m2g = a.createGain();
+    m2.type = 'triangle'; ramp(m2.frequency, 76.6, 345.5); m2g.gain.value = 0.07;
+    m2.connect(m2g); m2g.connect(out); m2.start(t); m2.stop(end + 0.1); nodes.push(m2);
+    /* the drum turning: one slow wave that everything else beats to, 2.5 turns a second up to 13 */
+    const lfo = a.createOscillator(); lfo.type = 'sine'; ramp(lfo.frequency, 2.5, 13); lfo.start(t); lfo.stop(end + 0.1); nodes.push(lfo);
+    const beat = (node, base, depth) => { const g = a.createGain(), d = a.createGain(); g.gain.value = base; d.gain.value = depth; lfo.connect(d); d.connect(g.gain); node.connect(g); g.connect(out); };
+    const th = a.createOscillator(); th.type = 'sine'; th.frequency.value = 62; th.start(t); th.stop(end + 0.1); nodes.push(th);
+    beat(th, 0.5, 0.45);
+    const th2 = a.createOscillator(); th2.type = 'sine'; th2.frequency.value = 43; th2.start(t); th2.stop(end + 0.1); nodes.push(th2);
+    beat(th2, 0.4, 0.3);
+    /* wet laundry thrown against the drum, and the cabinet rattling */
+    const len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), dd = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) dd[i] = Math.random() * 2 - 1;
+    [[120, 0.6, 0.9, 0.6], [420, 0.8, 0.3, 0.22], [2300, 1.6, 0.05, 0.05]].forEach((v) => {
+      const src = a.createBufferSource(), f = a.createBiquadFilter();
+      src.buffer = buf; src.loop = true; f.type = 'bandpass'; f.Q.value = v[1]; ramp(f.frequency, v[0] * 0.6, v[0] * 1.5);
+      src.connect(f); beat(f, v[2], v[3]); src.start(t); src.stop(end + 0.1); nodes.push(src);
+    });
+    const me = { out: out };
+    spinNow = me;
+    setTimeout(() => { try { out.disconnect(); } catch (e) { /* ignore */ } if (spinNow === me) spinNow = null; }, (end - a.currentTime + 0.4) * 1000);
+  }
+  function spinStop() {
+    clearTimeout(spinTimer); spinTimer = null;
+    if (!spinNow) return;
+    const a = audio(), me = spinNow;
+    spinNow = null;
+    if (a) { try { me.out.gain.cancelScheduledValues(a.currentTime); me.out.gain.setTargetAtTime(0, a.currentTime, 0.25); } catch (e) { /* ignore */ } }
+    setTimeout(() => { try { me.out.disconnect(); } catch (e) { /* ignore */ } }, 1500);
+  }
   let ratTimer = null;
   let hum = null;
   function humUpdate() {
@@ -1209,7 +1266,12 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (sfxOn && curKey === 'basement') {
       const again = () => { if (curKey !== 'basement' || !sfxOn) return; rat(); ratTimer = setTimeout(again, 7000 + Math.random() * 9000); };
       ratTimer = setTimeout(again, 6000 + Math.random() * 5000);
-    }
+      /* and, without warning, a machine starts to spin: soon after coming in, then now and again */
+      if (!spinTimer && !spinNow) {
+        const turn = () => { spinTimer = null; if (curKey !== 'basement' || !sfxOn) return; spin(); spinTimer = setTimeout(turn, 30000 + Math.random() * 25000); };
+        spinTimer = setTimeout(turn, 3500 + Math.random() * 2500);
+      }
+    } else spinStop();
     const lvl = !sfxOn ? 0 : curKey === 'basement' ? 1 : STORM_UNDER.indexOf(curKey) >= 0 ? 0.55 : 0;
     if (lvl && !hum) {
       const a = audio();
@@ -2814,6 +2876,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     } else {
       /* preview shortcut: play.html?scene=carve jumps straight to the carving scene, then the story starts as usual */
       if (/[?&]scene=carve(&|$)/.test(location.search)) { setWhen('預覽：刻痕'); art('crack'); await sleep(900); await carve(); art(null); }
+      /* preview shortcut: play.html?scene=laundry stands in the laundry room (hum, rats, the machine that starts to spin) */
+      if (DEV && /[?&]scene=laundry(&|$)/.test(location.search)) { setWhen('預覽：洗衣房'); art('basement'); await narr('（預覽）洗衣房。等幾秒，會聽到脫水聲。點畫面繼續。'); art(null); }
       await wake();
       await day();
       await therapy();
