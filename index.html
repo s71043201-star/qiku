@@ -402,6 +402,17 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 .guide ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; color: var(--paper-dim); font-size: 15px; }
 .guide ol b { color: var(--paper); font-weight: 700; }
 .guide .guide-end { margin: 16px 0 0; font-size: 15px; }
+.guide.pages { min-height: 46vh; display: flex; flex-direction: column; justify-content: center; }
+.gp[hidden] { display: none; }
+.gp p { margin: 0 0 10px; color: var(--paper-dim); font-size: 16px; line-height: 1.9; }
+.gp .gp-big { color: var(--paper); font-size: 20px; letter-spacing: .06em; margin: 6px 0 16px; padding-left: 12px; border-left: 2px solid var(--blood); }
+.gp .gp-goal { font-size: 23px; font-weight: 700; }
+.gp-count { margin: 0 0 14px; text-align: center; font-size: 13px; letter-spacing: .3em; color: var(--paper-dim); }
+.gp-btns { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+.gp-btns .chip { min-width: 96px; min-height: 44px; color: var(--paper); }
+.gp-btns .chip:disabled { opacity: .35; }
+.gp-btns #guideClose { border-color: var(--blood); }
+.gp-skip { margin-top: 14px; }
 .guide dd { margin: 0; padding-left: 12px; color: var(--paper-dim); font-size: 15px; }
 
 .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 6px 18px; }
@@ -558,43 +569,52 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   <button class="chip" id="bookClose" type="button">闔上筆記本</button>
 </div>
 <div class="sheet" id="guide" hidden>
-  <div class="guide">
-    <h2>遊玩說明</h2>
-    <p class="lead">你是一位 65 歲的獨居老人，在家裡昏倒後被送進山上的七窟安養院。這裡的每個人都忘了一些事，包括你自己。</p>
-    <h3>你要做什麼</h3>
-    <ol>
-      <li><b>查出這間安養院藏了什麼。</b>你有五個晚上。</li>
-      <li><b>白天問人。</b>每個人只記得一小塊，而且不一定可靠。把聽到的拼起來。</li>
-      <li><b>晚上決定要不要冒險。</b>吃不吃藥、要不要下樓去找那個敲擊聲，都由你選。</li>
-      <li><b>隔天早上檢查筆記本。</b>看看昨晚寫的東西，還在不在。</li>
-    </ol>
-    <h3>一天怎麼過</h3>
-    <dl>
-      <dt>白天：找人說話</dt>
-      <dd>一天只能去三個地方，去不完。先找你最好奇的人。同一個人，追問和不追問，會聽到不一樣的事。</dd>
-      <dt>下午：懷舊治療</dt>
-      <dd>高老師會給你看老照片、問你問題。想說什麼、說多少，由你決定。說得越多，越有人注意你。</dd>
-      <dt>傍晚：那顆藥</dt>
-      <dd>護理長每天傍晚發藥。吞下去會睡得很沉，並且做夢；藏起來，半夜才醒得過來。兩種選擇會遇到完全不同的事。</dd>
-      <dt>夜晚</dt>
-      <dd>沒吃藥的晚上可以離開房間。要去哪裡、遇到人時怎麼回答，都會留到之後。</dd>
-    </dl>
-    <h3>畫面上的按鈕</h3>
-    <dl>
-      <dt>點畫面</dt>
-      <dd>顯示下一句。出現選項時要自己選，選了不能反悔。</dd>
-      <dt>自動</dt>
-      <dd>開啟後對話會自己往下走，遇到選項才停。</dd>
-      <dt>筆記本</dt>
-      <dd>聽到的事會自動記進去，可以隨時翻開。但裡面的字，不一定都是你寫的。</dd>
-      <dt>回顧</dt>
-      <dd>漏看的對話可以從這裡找回來。</dd>
-      <dt>聲音</dt>
-      <dd>人聲、環境聲、背景音樂可以分開開關。建議戴耳機。</dd>
-    </dl>
-    <p class="lead guide-end">沒有標準答案，也沒有選錯就結束的地方。每個選擇只是讓你看到不同的一面。</p>
+  <div class="guide pages">
+    <p class="gp-count" id="guideCount"></p>
+    <section class="gp">
+      <h2>你是誰</h2>
+      <p class="gp-big">你是一位 65 歲的獨居老人。</p>
+      <p>在家裡昏倒後，你被送進山上的七窟安養院。</p>
+      <p>這裡的每個人都忘了一些事。包括你自己。</p>
+    </section>
+    <section class="gp">
+      <h2>你的目的</h2>
+      <p class="gp-big gp-goal">查出這間安養院藏了什麼。</p>
+      <p>你有五個晚上。</p>
+      <p>每天夜裡，牆的另一邊都有人在敲。那是你最重要的線索。</p>
+    </section>
+    <section class="gp">
+      <h2>白天：問人</h2>
+      <p class="gp-big">每個人只記得一小塊。</p>
+      <p>一天只能去三個地方，去不完。先找你最好奇的人。</p>
+      <p>同一個人，追問和不追問，會聽到不一樣的事。</p>
+    </section>
+    <section class="gp">
+      <h2>傍晚：那顆藥</h2>
+      <p class="gp-big">吃，或是藏起來。</p>
+      <p>吞下去會睡得很沉，並且做夢。</p>
+      <p>藏起來，半夜才醒得過來，才能離開房間。</p>
+      <p>兩種選擇會遇到完全不同的事。</p>
+    </section>
+    <section class="gp">
+      <h2>筆記本</h2>
+      <p class="gp-big">聽到的事會自動記進去。</p>
+      <p>隨時可以從上方的「筆記本」翻開。忘記自己在查什麼的時候，就看它。</p>
+      <p>每天早上記得檢查。裡面的字，不一定都是你寫的。</p>
+    </section>
+    <section class="gp">
+      <h2>怎麼操作</h2>
+      <p class="gp-big">點畫面，顯示下一句。</p>
+      <p>出現選項時要自己選，選了不能反悔。</p>
+      <p>上方的「自動」會讓對話自己往下走；「回顧」可以找回漏看的對話；「聲音」可以分開開關。建議戴耳機。</p>
+      <p>沒有選錯就結束的地方。每個選擇只是讓你看到不同的一面。</p>
+    </section>
   </div>
-  <button class="chip" id="guideClose" type="button">我知道了，開始</button>
+  <div class="gp-btns">
+    <button class="chip" id="guidePrev" type="button">上一頁</button>
+    <button class="chip" id="guideClose" type="button">下一頁</button>
+  </div>
+  <button class="chip gp-skip" id="guideSkip" type="button">關閉說明</button>
 </div>
 <div class="sheet" id="snd" hidden>
   <div class="guide">
@@ -1593,19 +1613,42 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   $('histClose').addEventListener('click', () => { $('hist').hidden = true; });
 
   let startResolve = null, guideResolve = null;
-  function openGuide() {
+  /* the guide is a handful of short pages turned one at a time, so nobody starts without having seen what they are
+     here to do. At the start of a new game (must = true) it cannot be closed early and each page holds for a moment
+     before the button works; opened from the cover or the top bar it can be closed at any page. */
+  const guidePages = Array.from($('guide').querySelectorAll('.gp'));
+  let guideAt = 0, guideMust = false, guideHold = null;
+  function guideShow(n) {
+    guideAt = n;
+    guidePages.forEach((g, k) => { g.hidden = k !== n; });
+    const last = n === guidePages.length - 1;
+    $('guideCount').textContent = (n + 1) + ' ／ ' + guidePages.length;
+    $('guidePrev').disabled = n === 0;
+    $('guideClose').textContent = last ? (guideMust ? '我知道了，開始' : '看完了') : '下一頁';
+    $('guideSkip').hidden = guideMust;
+    clearTimeout(guideHold);
+    $('guideClose').disabled = guideMust;
+    if (guideMust) guideHold = setTimeout(() => { $('guideClose').disabled = false; }, 900);
+    $('guide').scrollTop = 0;
+  }
+  function closeGuide() {
+    clearTimeout(guideHold);
+    $('guide').hidden = true;
+    if (guideResolve) { const r = guideResolve; guideResolve = null; r(); }
+  }
+  function openGuide(must) {
     return new Promise((resolve) => {
       guideResolve = resolve;
+      guideMust = !!must;
       $('guide').hidden = false;
-      /* focus the button without letting the browser scroll down to it: the guide must open at its first line */
-      try { $('guideClose').focus({ preventScroll: true }); } catch (e) { $('guideClose').focus(); }
-      $('guide').scrollTop = 0;
+      guideShow(0);
     });
   }
   $('guideClose').addEventListener('click', () => {
-    $('guide').hidden = true;
-    if (guideResolve) { const r = guideResolve; guideResolve = null; r(); }
+    if (guideAt < guidePages.length - 1) guideShow(guideAt + 1); else closeGuide();
   });
+  $('guidePrev').addEventListener('click', () => { if (guideAt > 0) guideShow(guideAt - 1); });
+  $('guideSkip').addEventListener('click', closeGuide);
   $('guideBtn').addEventListener('click', () => { openGuide(); });
   $('howBtn').addEventListener('click', (e) => { e.stopPropagation(); openGuide(); });
   $('startBtn').addEventListener('click', (e) => {
@@ -1663,7 +1706,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     $('contBtn').hidden = !N2_ON || nightsDone() < 1; /* only for someone who has finished the first night */
     const mode = await new Promise((resolve) => { startResolve = resolve; });
     /* a new game always begins with the guide: what the player is here to do, and how a day goes */
-    if (mode !== 'n2') await openGuide();
+    if (mode !== 'n2') await openGuide(true);
     cover.hidden = true;
     audio();
     clear();
@@ -2700,6 +2743,19 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     art('nurse_talk');
     await say('護理長', '「秀琴阿嬤昨天夜裡走了。睡夢中走的，很安詳。」');
     await say('護理長', '「這個年紀，是福氣。」');
+    if (!S.seen2.xiu) {
+      art('bed_empty');
+      await narr('你昨天沒有走進活動室。歌聲從那裡傳出來，傳了一整個下午。');
+      await narr('現在你才想起來，那首歌唱到一半，換過詞。你隔著走廊，只聽到一句。');
+      await narr('「是我去說的。」');
+      await narr('你當時沒有停下來。現在，沒有人可以問了。');
+      note('秀琴阿嬤夜裡走了。昨天她的歌唱到一半換了詞，我隔著走廊只聽到一句：是我去說的。我沒有進去問。');
+    } else if (!S.pressedXiu) {
+      art('bed_empty');
+      await narr('你想起她的手。昨天握著的時候，是冰的。她卻說你的手好暖。');
+      await narr('她說以前也有一個年輕人，手好暖。你沒有問她，那個人後來去了哪裡。');
+      note('秀琴阿嬤夜裡走了。我沒有問她，那個牽著孩子的年輕人是誰。');
+    }
     if (S.pressedXiu) {
       art('gao_talk');
       await narr('高老師從你身邊經過，停了一下。');
@@ -2726,7 +2782,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     row('牆裡的人', S.went2 ? (S.checked ? '他認出了不是你寫的那一行' : '他說你以後會分不出來') : S.took2 ? '你夢見牽著一隻小手' : '他敲了，你沒有下去');
     row('敲牆', S.knocked ? '「你不是鬼。你還不是。」' : '沒有敲');
     row('懷舊治療', S.admit ? '你認出了照片裡的人' : S.alert >= 4 ? '你說了一些' : '你幾乎什麼都沒說');
-    row('秀琴阿嬤', S.pressedXiu ? '她走的前一天，你問了她的歌' : '夜裡走了');
+    row('秀琴阿嬤', S.pressedXiu ? '她走的前一天，你問了她的歌' : S.seen2.xiu ? '她走的前一天，你握過她的手' : '你沒有去聽她唱歌');
     panel.appendChild(box);
     markDone(2);
     track('玩完：第二晚', summary());
