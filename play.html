@@ -76,6 +76,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 }
 .chip:hover { color: var(--paper); border-color: var(--paper-dim); }
 .chip.new { color: var(--paper); border-color: var(--blood); }
+.chip.on { color: var(--ink); background: var(--paper-dim); border-color: var(--paper-dim); }
 
 #goal {
   font-size: 13px;
@@ -397,6 +398,10 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 .guide .lead { margin: 0 0 14px; color: var(--paper); }
 .guide dl { margin: 0; display: flex; flex-direction: column; gap: 2px; }
 .guide dt { color: var(--paper); font-weight: 700; letter-spacing: .08em; padding-left: 10px; border-left: 2px solid var(--blood); margin-top: 10px; }
+.guide h3 { margin: 16px 0 6px; font-size: 14px; font-weight: 400; letter-spacing: .3em; color: var(--blood); }
+.guide ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 4px; color: var(--paper-dim); font-size: 15px; }
+.guide ol b { color: var(--paper); font-weight: 700; }
+.guide .guide-end { margin: 16px 0 0; font-size: 15px; }
 .guide dd { margin: 0; padding-left: 12px; color: var(--paper-dim); font-size: 15px; }
 
 .photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px 6px 18px; }
@@ -448,6 +453,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 .fb .opt::before { display: none; }
 .fb .opt:disabled { opacity: .45; }
 #fbState { min-height: 1.7em; color: var(--paper); }
+#chapList { display: flex; flex-direction: column; gap: 8px; }
+#chapList .opt small { display: block; margin: 2px 0 0; }
 #histList p { margin: 0; color: var(--paper-dim); }
 #histList p.say, #histList p.it { color: var(--paper); }
 #histList p.you { padding-left: 12px; border-left: 2px solid var(--blood); }
@@ -480,6 +487,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   <div id="bar">
     <span id="when">七窟</span>
     <span class="grow"></span>
+    <button class="chip" id="autoBtn" type="button" aria-pressed="false" title="自動播放：對話自己往下走">自動</button>
     <button class="chip" id="guideBtn" type="button">說明</button>
     <button class="chip" id="histBtn" type="button">回顧</button>
     <button class="chip" id="bookBtn" type="button" hidden>筆記本</button>
@@ -490,6 +498,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     <div id="art" aria-hidden="true">
       <img id="imgA" alt="">
       <img id="imgB" alt="">
+      <img id="imgAnim" class="frame" alt="">
+      <img id="imgAnim2" class="frame" alt="">
       <img id="imgBlink" class="frame" alt="">
       <img id="imgMouth" class="frame" alt="">
     </div>
@@ -528,7 +538,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       </div>
       <div class="cv-btns">
         <button class="opt" id="startBtn" type="button">開始遊戲</button>
-        <button class="opt" id="contBtn" type="button" hidden>從第二晚開始</button>
+        <button class="opt" id="contBtn" type="button" hidden>繼續遊戲</button>
         <button class="opt" id="howBtn" type="button">遊玩說明</button>
       </div>
     </div>
@@ -550,23 +560,41 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
 <div class="sheet" id="guide" hidden>
   <div class="guide">
     <h2>遊玩說明</h2>
-    <p class="lead">你是一位 65 歲的獨居老人，剛被送進七窟安養院。這裡的每個人都忘了一些事。你要在五個晚上之內，找出他們忘了什麼。</p>
+    <p class="lead">你是一位 65 歲的獨居老人，在家裡昏倒後被送進山上的七窟安養院。這裡的每個人都忘了一些事，包括你自己。</p>
+    <h3>你要做什麼</h3>
+    <ol>
+      <li><b>查出這間安養院藏了什麼。</b>你有五個晚上。</li>
+      <li><b>白天問人。</b>每個人只記得一小塊，而且不一定可靠。把聽到的拼起來。</li>
+      <li><b>晚上決定要不要冒險。</b>吃不吃藥、要不要下樓去找那個敲擊聲，都由你選。</li>
+      <li><b>隔天早上檢查筆記本。</b>看看昨晚寫的東西，還在不在。</li>
+    </ol>
+    <h3>一天怎麼過</h3>
     <dl>
-      <dt>點畫面繼續</dt>
-      <dd>點一下顯示下一句。出現選項時，你的選擇會改變之後發生的事。</dd>
       <dt>白天：找人說話</dt>
-      <dd>一天只能去三個地方。每位住民記得的事不一樣，也不一定可靠。</dd>
+      <dd>一天只能去三個地方，去不完。先找你最好奇的人。同一個人，追問和不追問，會聽到不一樣的事。</dd>
       <dt>下午：懷舊治療</dt>
-      <dd>高老師會帶大家看老照片、聊往事。想說什麼、說多少，由你決定。</dd>
+      <dd>高老師會給你看老照片、問你問題。想說什麼、說多少，由你決定。說得越多，越有人注意你。</dd>
       <dt>傍晚：那顆藥</dt>
-      <dd>護理長每天傍晚發藥。吃或不吃，由你決定，兩種選擇都有代價。</dd>
-      <dt>筆記本</dt>
-      <dd>聽到的事會記進筆記本，右上角可以隨時翻開。但筆記不一定都是你寫的。</dd>
-      <dt>回顧</dt>
-      <dd>漏看的對話，可以從右上角「回顧」找回來。</dd>
+      <dd>護理長每天傍晚發藥。吞下去會睡得很沉，並且做夢；藏起來，半夜才醒得過來。兩種選擇會遇到完全不同的事。</dd>
+      <dt>夜晚</dt>
+      <dd>沒吃藥的晚上可以離開房間。要去哪裡、遇到人時怎麼回答，都會留到之後。</dd>
     </dl>
+    <h3>畫面上的按鈕</h3>
+    <dl>
+      <dt>點畫面</dt>
+      <dd>顯示下一句。出現選項時要自己選，選了不能反悔。</dd>
+      <dt>自動</dt>
+      <dd>開啟後對話會自己往下走，遇到選項才停。</dd>
+      <dt>筆記本</dt>
+      <dd>聽到的事會自動記進去，可以隨時翻開。但裡面的字，不一定都是你寫的。</dd>
+      <dt>回顧</dt>
+      <dd>漏看的對話可以從這裡找回來。</dd>
+      <dt>聲音</dt>
+      <dd>人聲、環境聲、背景音樂可以分開開關。建議戴耳機。</dd>
+    </dl>
+    <p class="lead guide-end">沒有標準答案，也沒有選錯就結束的地方。每個選擇只是讓你看到不同的一面。</p>
   </div>
-  <button class="chip" id="guideClose" type="button">我知道了</button>
+  <button class="chip" id="guideClose" type="button">我知道了，開始</button>
 </div>
 <div class="sheet" id="snd" hidden>
   <div class="guide">
@@ -576,6 +604,13 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     <div class="setrow"><span>背景音樂<small>音樂盒的旋律</small></span><button class="chip" id="bgmTog" type="button">開</button></div>
   </div>
   <button class="chip" id="sndClose" type="button">完成</button>
+</div>
+<div class="sheet" id="chap" hidden>
+  <div class="fb">
+    <h3>選擇章節</h3>
+    <div id="chapList"></div>
+  </div>
+  <button class="chip" id="chapClose" type="button">回到封面</button>
 </div>
 <div class="sheet" id="fb" hidden>
   <div class="fb">
@@ -744,7 +779,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   let bgmHaunt = false; /* set by the first knock: the music turns wrong from then on, until the time of day changes */
   let bgmHush = false;  /* true while the storm breaks: no music at all, only rain and thunder */
   try { bgmOn = localStorage.getItem('qiku_bgm') !== '0'; } catch (e) { /* storage unavailable */ }
-  const BGM_DEEP = ['basement', 'dream', 'dream_hand', 'finger', 'finger_a', 'finger_b', 'scar', 'crack', 'crack_closed'];
+  const BGM_DEEP = ['notebook_crack', 'basement', 'dream', 'dream_hand', 'finger', 'finger_a', 'finger_b', 'scar', 'crack', 'crack_closed'];
   const BGM_NIGHT = ['office', 'hall_night', 'room', 'pill', 'notebook', 'wang', 'nurse2', 'he2', 'lan2', 'zhou2', 'wu2', 'xiu2', 'mu2', 'chen2', 'gao2'];
   function bgmApply(secs) {
     if (!bgm) return;
@@ -829,8 +864,10 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   /* which music goes with a picture: the tune plays over places and objects only. When a person is on screen it
      falls silent so the voice is alone; when that person's face changes (the "2" pictures) an uneasy figure plays instead. */
   function bgmScene(key) {
-    const who = /^(nurse|he|lan|zhou|wu|xiu|mu|chen|gao|wang)(2?)$/.exec(key);
-    bgmMode = who ? (who[2] ? 'tense' : 'quiet') : 'tune';
+    const who = /^(nurse|he|lan|zhou|wu|xiu|mu|chen|gao|wang)(2?)(?:_talk)?$/.exec(key);
+    /* the corridor by day, where the player chooses where to go: no music there, only birds (see birdsUpdate) */
+    const hub = key === 'hall_day' && /白天/.test(when.textContent);
+    bgmMode = hub ? 'quiet' : who ? (who[2] ? 'tense' : 'quiet') : 'tune';
     bgmDeep = bgmHaunt || BGM_DEEP.indexOf(key) >= 0;
     bgmLevel = bgmDeep ? 1 : BGM_NIGHT.indexOf(key) >= 0 ? 0.7 : 0.4;
     bgmApply(3);
@@ -884,7 +921,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
      (夜晚 / 深夜). Underground it is only a muffled rumble; inside the dream it almost disappears.
      It belongs to the 環境聲 switch. */
   let storm = null, stormLevel = 0, stormNext = 0;
-  const STORM_UNDER = ['basement', 'crack', 'crack_closed', 'finger', 'finger_a', 'finger_b', 'scar'];
+  const STORM_UNDER = ['notebook_crack', 'basement', 'crack', 'crack_closed', 'finger', 'finger_a', 'finger_b', 'scar'];
   const STORM_DREAM = ['photo_hall', 'dream', 'dream_hand'];
   function stormStart() {
     if (storm || !sfxOn) return;
@@ -917,7 +954,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   function thunder() {
     if (!storm || !sfxOn) return;
     const a = storm.a, near = stormLevel >= 1, wait = near ? 0.25 + Math.random() * 1.1 : 0.1;
-    if (near && !reduced) { stage.classList.remove('flash'); void stage.offsetWidth; stage.classList.add('flash'); } /* lightning first */
+    if (near && !reduced) { stage.classList.remove('flash'); void stage.offsetWidth; stage.classList.add('flash'); if (animFlash) animFlash(); } /* lightning first */
     const t = a.currentTime + wait, dur = 3 + Math.random() * 2.5, len = Math.floor(a.sampleRate * dur);
     const buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
     let last = 0;
@@ -950,15 +987,48 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (!voiceOn && vAudio) { try { vAudio.pause(); } catch (e) { /* ignore */ } talk(false); }
     showSound(); saveSound();
   });
-  $('sfxTog').addEventListener('click', () => { sfxOn = !sfxOn; showSound(); saveSound(); if (sfxOn) thud(0.3); stormUpdate(); });
+  $('sfxTog').addEventListener('click', () => { sfxOn = !sfxOn; showSound(); saveSound(); if (sfxOn) thud(0.3); stormUpdate(); birdsUpdate(); humUpdate(); });
   $('bgmTog').addEventListener('click', () => { bgmOn = !bgmOn; showSound(); saveSound(); if (bgmOn) bgmStart(); bgmApply(1.2); });
 
   /* ---------- dialogue box ---------- */
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   let tapResolve = null, typing = null;
   function waitTap() {
-    return new Promise((r) => { tapResolve = r; nextBtn.hidden = false; });
+    return new Promise((r) => { tapResolve = r; nextBtn.hidden = false; autoArm(); });
   }
+  /* auto-play (the 自動 switch in the top bar): each line moves on by itself, after its voice has finished, or after
+     a reading time that grows with the length of the line. Choices are never made for the player, and nothing
+     moves while a sheet (notebook, guide, sound, feedback ...) is open. A tap still works as usual. */
+  let autoOn = false, autoTimer = null;
+  try { autoOn = localStorage.getItem('qiku_auto') === '1'; } catch (e) { autoOn = false; }
+  function autoArm() {
+    clearTimeout(autoTimer);
+    if (!autoOn || !tapResolve) return;
+    const mine = tapResolve;
+    const speaking = () => vAudio && !vAudio.paused && !vAudio.ended;
+    const voiced = speaking();
+    const go = () => {
+      if (!autoOn || tapResolve !== mine) return;
+      if (speaking()) { autoTimer = setTimeout(go, 200); return; }
+      if (document.querySelector('.sheet:not([hidden])')) { autoTimer = setTimeout(go, 500); return; }
+      tap();
+    };
+    const wait = voiced ? 700 : Math.min(6500, 900 + 70 * txt.textContent.length);
+    autoTimer = setTimeout(function first() {
+      if (!autoOn || tapResolve !== mine) return;
+      if (speaking()) { autoTimer = setTimeout(first, 200); return; }
+      autoTimer = setTimeout(go, voiced ? 550 : 0); /* a breath after the voice stops */
+    }, wait);
+  }
+  function showAuto() { const b = $('autoBtn'); b.classList.toggle('on', autoOn); b.setAttribute('aria-pressed', autoOn ? 'true' : 'false'); }
+  $('autoBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    autoOn = !autoOn;
+    try { localStorage.setItem('qiku_auto', autoOn ? '1' : '0'); } catch (err) { /* storage unavailable */ }
+    showAuto();
+    autoArm();
+  });
+  showAuto();
   function tap() {
     if (typing) { typing.finish(); return; }
     if (!tapResolve) return;
@@ -991,7 +1061,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       typing = { finish: done };
     });
   }
-  const VOICE = /*VOICE*/{"護理長|「醒了？慢慢來，不要急。」": "v000", "護理長|「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」": "v001", "護理長|「社會局安排的。你一個人住，總要有人照顧。」": "v002", "護理長|「家裡沒有人了，回去做什麼呢。先住下來，好不好？」": "v003", "護理長|「藥早晚各一次，晚上那顆幫助睡眠。下午有高老師的懷舊課，大家都很喜歡。」": "v004", "何太太|「你好，你是新來的吧？」": "v005", "何太太|「我也是新來的。我昨天才來的。我們互相照顧。」": "v006", "蘭嬸|「來來來，新來的喔？呷飽未？」": "v007", "蘭嬸|「這碗是要給那個囝仔的，伊猶未呷。」": "v008", "蘭嬸|「……就是那個囝仔啊。」": "v009", "蘭嬸|「奇怪，伊叫啥物名……」": "v010", "蘭嬸|「緊呷，飯冷去就歹呷。」": "v011", "老周|「報告！新兵報到！」": "v012", "老周|「好。好。晚上不要亂走，晚上有哨。」": "v013", "老周|「樓下有人敲門，不要應。」": "v014", "老周|「不是兵？」": "v015", "老周|「你是。我記得你的臉。你是那個掃地的。」": "v016", "吳會計|「初次見面。敝姓吳，以前管帳的。」": "v017", "吳會計|「我什麼都要記下來。不記，就會不見。」": "v018", "吳會計|「人。」": "v019", "吳會計|「今年走了五位。去年三位。請等我一下，我寫在哪裡了……」": "v020", "吳會計|「好習慣。但是要記得——」": "v021", "吳會計|「寫完要自己再看一次。看是不是你的字。」": "v022", "秀琴阿嬤|「月娘光光照窗前，阿母等囝仔轉來——」": "v023", "秀琴阿嬤|「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」": "v024", "秀琴阿嬤|「我剛剛唱了什麼？」": "v025", "秀琴阿嬤|「我沒有。我不記得。」": "v026", "秀琴阿嬤|「是喔？我自己都不記得了。」": "v027", "木伯|「不行。」": "v028", "木伯|「深。」": "v029", "護理長|「陳阿嬤不認得人了。她每天都坐在那裡看海。」": "v030", "高老師|「歡迎。不用緊張，我們就是聊聊天。」": "v031", "高老師|「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」": "v032", "高老師|「這張呢？」": "v033", "高老師|「是嗎？很多老房子都長得很像。」": "v034", "高老師|「沒關係，慢慢來。」": "v035", "高老師|「就是這裡呀，四十年前的樣子。那時候還不叫安養院。」": "v036", "高老師|「叫什麼我也不清楚。我那時候還沒出生呢。」": "v037", "高老師|「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」": "v038", "高老師|「今天就到這裡。你做得很好。」": "v039", "護理長|「這顆是你的。睡前吃，一覺到天亮。」": "v040", "護理長|「嘴巴張開，我看一下。」": "v041", "護理長|「你今天比較累，要好好睡。」": "v042", "小孩的聲音|「大哥哥，再玩一次。」": "v043", "年輕的你|「好。敲三下是人，敲四下是鬼。聽到三下，才可以開門喔。」": "v044", "小孩的聲音|「是人！」": "v045", "老王|「聽到敲四下，不要應。不要應。」": "v046", "老王|「誰？」": "v047", "老王|「……回去睡覺。」": "v048", "何太太|「你好，你是新來的吧？我也是。」": "v049", "何太太|「我昨天才來的。」": "v050", "高老師|「看到哪一張，會讓你想起什麼？」": "v051", "牆裡的聲音|「你今天比較早。」": "v052", "牆裡的聲音|「上一次，你是兩點四十分來的。」": "v053", "牆裡的聲音|「你每次都先問這個。」": "v054", "牆裡的聲音|「第一次你問了三遍。第二次你哭了。」": "v055", "牆裡的聲音|「我是十一號。你以前不是這樣叫我的。」": "v056", "牆裡的聲音|「你來過。」": "v057", "牆裡的聲音|「你第三次來的時候，穿藍色的毛衣。左手有一道新的傷口。」": "v058", "牆裡的聲音|「這是你第七次來了。」": "v059", "牆裡的聲音|「你每次都這樣說。」": "v060", "牆裡的聲音|「帶糖來。」": "v061", "牆裡的聲音|「他們會讓你忘記。」": "v062", "牆裡的聲音|「我不會忘。我什麼都不會忘。」": "v063", "牆裡的聲音|「回去。他兩點五十五分會經過這裡。」": "v064", "牆裡的聲音|「你上次也跑掉了。」": "v065", "牆裡的聲音|「沒關係。你會回來。你每次都回來。」": "v066", "老周|「點名！」": "v067", "老周|「林阿土。」": "v068", "老周|「張金水。」": "v069", "老周|「許萬得。陳有福。黃清標。李火旺。蔡文進。」": "v070", "老周|「王再發。吳天賜。鄭松柏。劉阿坤。郭榮華。謝木生。簡順天。」": "v071", "老周|「周振國。」": "v072", "老周|「有。」": "v073", "老周|「你怎麼不答？」": "v074", "老周|「喔。你是掃地的。掃地的不用點名。」": "v075", "老周|「報告，是第三批。」": "v076", "老周|「一個禮拜。一個禮拜就剩我一個。」": "v077", "吳會計|「早安。您是……請等我一下。」": "v078", "吳會計|「有了。新入住一名，前天。」": "v079", "吳會計|「新入住一名。新入住一名……」": "v080", "吳會計|「是我記重複了。對不起，是我記重複了。」": "v081", "吳會計|「這樣帳就平了。」": "v082", "吳會計|「今年走了五位。去年三位。一年比一年多。」": "v083", "秀琴阿嬤|「毋通開門。四下，毋通開門。」": "v084", "秀琴阿嬤|「是伊。伊猶在下面。」": "v085", "秀琴阿嬤|「彼一暝有人牽伊的手，行到樓梯口。是我去講的。我驚，我真正驚——」": "v086", "秀琴阿嬤|「……你的手，猶閣遮爾大。」": "v087", "秀琴阿嬤|「你是新來的喔？我唱歌給你聽。」": "v088", "秀琴阿嬤|「多謝。你的手真燒。」": "v089", "秀琴阿嬤|「較早嘛有一個少年的，手真燒。逐工牽一个囝仔，佇走廊行來行去。」": "v090", "木伯|「你的。」": "v091", "木伯|「十四。」": "v092", "木伯|「閣一个。猶未。」": "v093", "蘭嬸|「來，呷飯。今仔日有滷肉。」": "v094", "蘭嬸|「是欲予彼个囝仔的，著無？」": "v095", "蘭嬸|「共伊講，阿蘭姨猶會記得伊愛呷甜。」": "v096", "蘭嬸|「老人呷甜，會蛀齒喔。」": "v097", "蘭嬸|「端去下跤啊。燒水彼間的門口。逐工攏按呢。」": "v098", "蘭嬸|「……奇怪。我是端去予啥人？」": "v099", "高老師|「今天我們看一張合照。」": "v100", "高老師|「這張裡面，有沒有你覺得眼熟的人？」": "v101", "高老師|「人到了這個年紀，看誰都像自己。」": "v102", "高老師|「不過既然你有興趣，再給你看一張。」": "v103", "高老師|「好了。看太多會累。」": "v104", "高老師|「不知道。我拿到的時候就是這樣了。」": "v105", "高老師|「沒關係。」": "v106", "高老師|「昨晚睡得好嗎？」": "v107", "高老師|「老房子，水管會響。」": "v108", "高老師|「今天就到這裡。明天見。」": "v109", "護理長|「來，今天的。」": "v110", "護理長|「高老師說你這兩天比較累。來，喝水，我看你吞。」": "v111", "年輕的你|「不要出聲。走到樓梯口就好了。」": "v112", "小孩的聲音|「大哥哥，外面真的有海嗎？」": "v113", "老王|「……又是你。」": "v114", "老王|「我沒看到。」": "v115", "護理長|「秀琴阿嬤昨天夜裡走了。睡夢中走的，很安詳。」": "v116", "護理長|「這個年紀，是福氣。」": "v117", "高老師|「她昨天跟你聊得很開心。」": "v118", "老周|「……簡順天。」": "v119", "老周|「張秀琴。」": "v120", "牆裡的聲音|「你今天比較晚。我敲了三輪。」": "v121", "牆裡的聲音|「你昨天沒有來。」": "v122", "牆裡的聲音|「我敲了。你沒有應。牆上那一道，我還是刻了。第七道。」": "v123", "牆裡的聲音|「是阿蘭姨的糖。」": "v124", "牆裡的聲音|「她的糖都放在圍裙左邊的口袋。」": "v125", "牆裡的聲音|「這一行不是你寫的。」": "v126", "牆裡的聲音|「你寫『的』，最後一筆會往上勾。他不會。」": "v127", "牆裡的聲音|「白天的人。」": "v128", "牆裡的聲音|「我沒有看過他。我只聽過他的鞋子。」": "v129", "牆裡的聲音|「是你教我寫字的。」": "v130", "牆裡的聲音|「你說，『的』要這樣勾，才不會倒下來。」": "v131", "牆裡的聲音|「下次帶糖來。這是換的。」": "v132", "牆裡的聲音|「你上次也不給我看。」": "v133", "牆裡的聲音|「後來，你就分不出來了。」": "v134", "牆裡的聲音|「你不是鬼。」": "v135", "牆裡的聲音|「你還不是。」": "v136", "牆裡的聲音|「你以前會敲。」": "v137", "牆裡的聲音|「回去。他今天會早五分鐘。」": "v138"}/*END*/;
+  const VOICE = /*VOICE*/{"護理長|「醒了？慢慢來，不要急。」": "v000", "護理長|「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」": "v001", "護理長|「社會局安排的。你一個人住，總要有人照顧。」": "v002", "護理長|「家裡沒有人了，回去做什麼呢。先住下來，好不好？」": "v003", "護理長|「藥早晚各一次，晚上那顆幫助睡眠。下午有高老師的懷舊課，大家都很喜歡。」": "v004", "何太太|「你好，你是新來的吧？」": "v005", "何太太|「我也是新來的。我昨天才來的。我們互相照顧。」": "v006", "蘭嬸|「來來來，新來的喔？呷飽未？」": "v007", "蘭嬸|「這碗是要給那個囝仔的，伊猶未呷。」": "v008", "蘭嬸|「……就是那個囝仔啊。」": "v009", "蘭嬸|「奇怪，伊叫啥物名……」": "v010", "蘭嬸|「緊呷，飯冷去就歹呷。」": "v011", "老周|「報告！新兵報到！」": "v012", "老周|「好。好。晚上不要亂走，晚上有哨。」": "v013", "老周|「樓下有人敲門，不要應。」": "v014", "老周|「不是兵？」": "v015", "老周|「你是。我記得你的臉。你是那個掃地的。」": "v016", "吳會計|「初次見面。敝姓吳，以前管帳的。」": "v017", "吳會計|「我什麼都要記下來。不記，就會不見。」": "v018", "吳會計|「人。」": "v019", "吳會計|「今年走了五位。去年三位。請等我一下，我寫在哪裡了……」": "v020", "吳會計|「好習慣。但是要記得——」": "v021", "吳會計|「寫完要自己再看一次。看是不是你的字。」": "v022", "秀琴阿嬤|「月娘光光照窗前，阿母等囝仔轉來——」": "v023", "秀琴阿嬤|「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」": "v024", "秀琴阿嬤|「我剛剛唱了什麼？」": "v025", "秀琴阿嬤|「我沒有。我不記得。」": "v026", "秀琴阿嬤|「是喔？我自己都不記得了。」": "v027", "木伯|「不行。」": "v028", "木伯|「深。」": "v029", "護理長|「陳阿嬤不認得人了。她每天都坐在那裡看海。」": "v030", "高老師|「歡迎。不用緊張，我們就是聊聊天。」": "v031", "高老師|「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」": "v032", "高老師|「這張呢？」": "v033", "高老師|「是嗎？很多老房子都長得很像。」": "v034", "高老師|「沒關係，慢慢來。」": "v035", "高老師|「就是這裡呀，四十年前的樣子。那時候還不叫安養院。」": "v036", "高老師|「叫什麼我也不清楚。我那時候還沒出生呢。」": "v037", "高老師|「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」": "v038", "高老師|「今天就到這裡。你做得很好。」": "v039", "護理長|「這顆是你的。睡前吃，一覺到天亮。」": "v040", "護理長|「嘴巴張開，我看一下。」": "v041", "護理長|「你今天比較累，要好好睡。」": "v042", "小孩的聲音|「大哥哥，再玩一次。」": "v043", "年輕的你|「好。敲三下是人，敲四下是鬼。聽到三下，才可以開門喔。」": "v044", "小孩的聲音|「是人！」": "v045", "老王|「聽到敲四下，不要應。不要應。」": "v046", "老王|「誰？」": "v047", "老王|「……回去睡覺。」": "v048", "何太太|「你好，你是新來的吧？我也是。」": "v049", "何太太|「我昨天才來的。」": "v050", "高老師|「看到哪一張，會讓你想起什麼？」": "v051", "牆裡的聲音|「你今天比較早。」": "v052", "牆裡的聲音|「上一次，你是兩點四十分來的。」": "v053", "牆裡的聲音|「你每次都先問這個。」": "v054", "牆裡的聲音|「第一次你問了三遍。第二次你哭了。」": "v055", "牆裡的聲音|「我是十一號。你以前不是這樣叫我的。」": "v056", "牆裡的聲音|「你來過。」": "v057", "牆裡的聲音|「你第三次來的時候，穿藍色的毛衣。左手有一道新的傷口。」": "v058", "牆裡的聲音|「這是你第七次來了。」": "v059", "牆裡的聲音|「你每次都這樣說。」": "v060", "牆裡的聲音|「帶糖來。」": "v061", "牆裡的聲音|「他們會讓你忘記。」": "v062", "牆裡的聲音|「我不會忘。我什麼都不會忘。」": "v063", "牆裡的聲音|「回去。他兩點五十五分會經過這裡。」": "v064", "牆裡的聲音|「你上次也跑掉了。」": "v065", "牆裡的聲音|「沒關係。你會回來。你每次都回來。」": "v066", "老周|「點名！」": "v067", "老周|「林阿土。」": "v068", "老周|「張金水。」": "v069", "老周|「許萬得。陳有福。黃清標。李火旺。蔡文進。」": "v070", "老周|「王再發。吳天賜。鄭松柏。劉阿坤。郭榮華。謝木生。簡順天。」": "v071", "老周|「周振國。」": "v072", "老周|「有。」": "v073", "老周|「你怎麼不答？」": "v074", "老周|「喔。你是掃地的。掃地的不用點名。」": "v075", "老周|「報告，是第三批。」": "v076", "老周|「一個禮拜。一個禮拜就剩我一個。」": "v077", "吳會計|「早安。您是……請等我一下。」": "v078", "吳會計|「有了。新入住一名，前天。」": "v079", "吳會計|「新入住一名。新入住一名……」": "v080", "吳會計|「是我記重複了。對不起，是我記重複了。」": "v081", "吳會計|「這樣帳就平了。」": "v082", "吳會計|「今年走了五位。去年三位。一年比一年多。」": "v083", "秀琴阿嬤|「毋通開門。四下，毋通開門。」": "v084", "秀琴阿嬤|「是伊。伊猶在下面。」": "v085", "秀琴阿嬤|「彼一暝有人牽伊的手，行到樓梯口。是我去講的。我驚，我真正驚——」": "v086", "秀琴阿嬤|「……你的手，猶閣遮爾大。」": "v087", "秀琴阿嬤|「你是新來的喔？我唱歌給你聽。」": "v088", "秀琴阿嬤|「多謝。你的手真燒。」": "v089", "秀琴阿嬤|「較早嘛有一個少年的，手真燒。逐工牽一个囝仔，佇走廊行來行去。」": "v090", "木伯|「你的。」": "v091", "木伯|「十四。」": "v092", "木伯|「閣一个。猶未。」": "v093", "蘭嬸|「來，呷飯。今仔日有滷肉。」": "v094", "蘭嬸|「是欲予彼个囝仔的，著無？」": "v095", "蘭嬸|「共伊講，阿蘭姨猶會記得伊愛呷甜。」": "v096", "蘭嬸|「老人呷甜，會蛀齒喔。」": "v097", "蘭嬸|「端去下跤啊。燒水彼間的門口。逐工攏按呢。」": "v098", "蘭嬸|「……奇怪。我是端去予啥人？」": "v099", "高老師|「今天我們看一張合照。」": "v100", "高老師|「這張裡面，有沒有你覺得眼熟的人？」": "v101", "高老師|「人到了這個年紀，看誰都像自己。」": "v102", "高老師|「不過既然你有興趣，再給你看一張。」": "v103", "高老師|「好了。看太多會累。」": "v104", "高老師|「不知道。我拿到的時候就是這樣了。」": "v105", "高老師|「沒關係。」": "v106", "高老師|「昨晚睡得好嗎？」": "v107", "高老師|「老房子，水管會響。」": "v108", "高老師|「今天就到這裡。明天見。」": "v109", "護理長|「來，今天的。」": "v110", "護理長|「高老師說你這兩天比較累。來，喝水，我看你吞。」": "v111", "年輕的你|「不要出聲。走到樓梯口就好了。」": "v112", "小孩的聲音|「大哥哥，外面真的有海嗎？」": "v113", "老王|「……又是你。」": "v114", "老王|「我沒看到。」": "v115", "護理長|「秀琴阿嬤昨天夜裡走了。睡夢中走的，很安詳。」": "v116", "護理長|「這個年紀，是福氣。」": "v117", "高老師|「她昨天跟你聊得很開心。」": "v118", "老周|「……簡順天。」": "v119", "老周|「張秀琴。」": "v120", "牆裡的聲音|「你今天比較晚。我敲了三輪。」": "v121", "牆裡的聲音|「你昨天沒有來。」": "v122", "牆裡的聲音|「我敲了。你沒有應。牆上那一道，我還是刻了。第七道。」": "v123", "牆裡的聲音|「是阿蘭姨的糖。」": "v124", "牆裡的聲音|「她的糖都放在圍裙左邊的口袋。」": "v125", "牆裡的聲音|「這一行不是你寫的。」": "v126", "牆裡的聲音|「你寫『的』，最後一筆會往上勾。他不會。」": "v127", "牆裡的聲音|「白天的人。」": "v128", "牆裡的聲音|「我沒有看過他。我只聽過他的鞋子。」": "v129", "牆裡的聲音|「是你教我寫字的。」": "v130", "牆裡的聲音|「你說，『的』要這樣勾，才不會倒下來。」": "v131", "牆裡的聲音|「下次帶糖來。這是換的。」": "v132", "牆裡的聲音|「你上次也不給我看。」": "v133", "牆裡的聲音|「後來，你就分不出來了。」": "v134", "牆裡的聲音|「你不是鬼。」": "v135", "牆裡的聲音|「你還不是。」": "v136", "牆裡的聲音|「你以前會敲。」": "v137", "牆裡的聲音|「回去。他今天會早五分鐘。」": "v138", "蘭嬸|「來來來，新來的喔？吃飽了沒？」": "v139", "蘭嬸|「這碗是要給那個孩子的，他還沒吃。」": "v140", "蘭嬸|「……就是那個孩子啊。」": "v141", "蘭嬸|「奇怪，他叫什麼名字……」": "v142", "蘭嬸|「快吃，飯冷了就不好吃。」": "v143", "秀琴阿嬤|「月亮光光照窗前，媽媽等孩子回來——」": "v144", "秀琴阿嬤|「……那一晚，有人牽著孩子要走。是我去說的，是我去說的——」": "v145", "秀琴阿嬤|「不可以開門。四下，不可以開門。」": "v146", "秀琴阿嬤|「是他。他還在下面。」": "v147", "秀琴阿嬤|「那一晚有人牽著他的手，走到樓梯口。是我去說的。我怕，我真的怕——」": "v148", "秀琴阿嬤|「……你的手，還是這麼大。」": "v149", "秀琴阿嬤|「謝謝。你的手好暖。」": "v150", "秀琴阿嬤|「以前也有一個年輕人，手好暖。每天牽著一個孩子，在走廊走來走去。」": "v151", "木伯|「還有一個。還沒。」": "v152", "蘭嬸|「來，吃飯。今天有滷肉。」": "v153", "蘭嬸|「是要給那個孩子的，對不對？」": "v154", "蘭嬸|「跟他說，阿蘭姨還記得他愛吃甜。」": "v155", "蘭嬸|「老人吃甜的，會蛀牙喔。」": "v156", "蘭嬸|「端去樓下啊。燒水那間的門口。每天都這樣。」": "v157", "蘭嬸|「……奇怪。我是端去給誰？」": "v158", "小孩的聲音|「三下。是人。」": "v159", "年輕的你|「盒子抱緊。不要讓它響。」": "v160", "小孩的聲音|「四十一。四十二。上次你一個人走，是四十七步。」": "v161", "小孩的聲音|「她說，等我好了，就帶我去看海。」": "v162", "年輕的你|「拿好。不管誰問，都不要給。」": "v163", "小孩的聲音|「我不會忘。」": "v164"}/*END*/;
   let vAudio = null;
   function voice(who, text) {
     if (vAudio) { try { vAudio.pause(); } catch (e) { /* ignore */ } vAudio = null; }
@@ -1028,11 +1098,132 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   const it = (t) => line('it', t, '牆裡的聲音');
   function prompt(text) { history.push({ cls: 'narr', text: text, who: '' }); setBox('narr', text); }
   function clear() { panel.textContent = ''; setBox('narr', ''); }
+  /* birdsong for the corridor by day (synthesised; it follows the 環境聲 switch): short whistles, quick trills, a
+     two-note call and now and then a dove, each from a slightly different side and distance, at uneven intervals. */
+  let birds = null;
+  function birdsStart() {
+    const a = audio();
+    if (!a) return;
+    const out = a.createGain();
+    out.gain.value = 0; out.gain.setTargetAtTime(1, a.currentTime, 0.8); out.connect(a.destination);
+    const b = { a: a, out: out, timer: null };
+    const note = (t, f0, f1, dur, vol, pan) => {
+      const o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + dur * 0.25); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      let last = g;
+      if (a.createStereoPanner) { const sp = a.createStereoPanner(); sp.pan.value = pan; g.connect(sp); last = sp; }
+      o.connect(g); last.connect(out);
+      o.start(t); o.stop(t + dur + 0.05);
+    };
+    const sing = () => {
+      if (birds !== b) return;
+      const t = a.currentTime + 0.05, pan = Math.random() * 1.6 - 0.8, r = Math.random(), far = 0.4 + Math.random() * 0.6;
+      if (r < 0.4) { /* a few rising whistles */
+        const n = 2 + Math.floor(Math.random() * 4), f = 3000 + Math.random() * 1800;
+        for (let i = 0; i < n; i++) note(t + i * 0.11, f * (1 + 0.06 * i), f * (1.18 + 0.06 * i), 0.07, 0.035 * far, pan);
+      } else if (r < 0.7) { /* a quick trill */
+        const f = 3600 + Math.random() * 1200, n = 6 + Math.floor(Math.random() * 8);
+        for (let i = 0; i < n; i++) note(t + i * 0.045, f, f * (i % 2 ? 0.86 : 1.1), 0.035, 0.028 * far, pan);
+      } else if (r < 0.88) { /* a falling two-note call */
+        const f = 2300 + Math.random() * 700;
+        note(t, f * 1.3, f, 0.22, 0.03 * far, pan); note(t + 0.3, f * 1.25, f * 0.95, 0.26, 0.028 * far, pan);
+      } else { /* a dove, low and far away */
+        const f = 500 + Math.random() * 60;
+        [0, 0.36, 0.62].forEach((d, i) => note(t + d, f * (i === 1 ? 1.12 : 1), f * 0.9, i === 1 ? 0.2 : 0.3, 0.05 * far, pan));
+      }
+      b.timer = setTimeout(sing, 500 + Math.random() * 2600);
+    };
+    birds = b;
+    b.timer = setTimeout(sing, 600);
+  }
+  function birdsStop() {
+    const b = birds;
+    birds = null;
+    if (!b) return;
+    clearTimeout(b.timer);
+    try { b.out.gain.cancelScheduledValues(b.a.currentTime); b.out.gain.setTargetAtTime(0, b.a.currentTime, 0.4); } catch (e) { /* ignore */ }
+    setTimeout(() => { try { b.out.disconnect(); } catch (e) { /* ignore */ } }, 2500);
+  }
+  function birdsUpdate() {
+    const on = sfxOn && curKey === 'hall_day' && /白天/.test(when.textContent);
+    if (on && !birds) birdsStart(); else if (!on && birds) birdsStop();
+  }
+
+  /* the boiler: a low hum under everything that happens in the basement (synthesised; follows the 環境聲 switch).
+     Two tones a little apart beat slowly against each other, with their overtones so that small speakers can
+     still carry it, and a soft rumble underneath. Loudest in the laundry room, fainter at the wall. */
+  /* a rat: a quick patter of little feet, then one to three thin squeaks, from somewhere to one side */
+  function rat() {
+    const a = audio();
+    if (!a) return;
+    const t = a.currentTime + 0.02, out = a.createGain();
+    out.gain.value = 0.5;
+    if (a.createStereoPanner) { const sp = a.createStereoPanner(); sp.pan.value = Math.random() * 1.4 - 0.7; out.connect(sp); sp.connect(a.destination); } else out.connect(a.destination);
+    const len = Math.floor(a.sampleRate * 0.03), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const n = 5 + Math.floor(Math.random() * 6);
+    for (let i = 0; i < n; i++) {
+      const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+      src.buffer = buf; f.type = 'bandpass'; f.frequency.value = 2600 + Math.random() * 1800; f.Q.value = 1.2; g.gain.value = 0.05 + Math.random() * 0.04;
+      src.connect(f); f.connect(g); g.connect(out); src.start(t + i * 0.055 + Math.random() * 0.02);
+    }
+    const k = 1 + Math.floor(Math.random() * 3), t2 = t + n * 0.055 + 0.08;
+    for (let i = 0; i < k; i++) {
+      const o = a.createOscillator(), g = a.createGain(), f0 = 5200 + Math.random() * 1800, ts = t2 + i * 0.11;
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(f0, ts); o.frequency.exponentialRampToValueAtTime(f0 * 0.72, ts + 0.07);
+      g.gain.setValueAtTime(0, ts); g.gain.linearRampToValueAtTime(0.045, ts + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, ts + 0.075);
+      o.connect(g); g.connect(out); o.start(ts); o.stop(ts + 0.1);
+    }
+    setTimeout(() => { try { out.disconnect(); } catch (e) { /* ignore */ } }, 3000);
+  }
+  let ratTimer = null;
+  let hum = null;
+  function humUpdate() {
+    /* in the laundry room the rats are heard again every so often */
+    clearTimeout(ratTimer); ratTimer = null;
+    if (sfxOn && curKey === 'basement') {
+      const again = () => { if (curKey !== 'basement' || !sfxOn) return; rat(); ratTimer = setTimeout(again, 7000 + Math.random() * 9000); };
+      ratTimer = setTimeout(again, 6000 + Math.random() * 5000);
+    }
+    const lvl = !sfxOn ? 0 : curKey === 'basement' ? 1 : STORM_UNDER.indexOf(curKey) >= 0 ? 0.55 : 0;
+    if (lvl && !hum) {
+      const a = audio();
+      if (!a) return;
+      const out = a.createGain(), lp = a.createBiquadFilter(), nodes = [];
+      out.gain.value = 0; lp.type = 'lowpass'; lp.frequency.value = 260;
+      lp.connect(out); out.connect(a.destination);
+      [[49, 0.5, 'sine'], [50.4, 0.35, 'sine'], [98, 0.3, 'sine'], [147.5, 0.14, 'triangle'], [196, 0.06, 'triangle']].forEach((v) => {
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = v[2]; o.frequency.value = v[0]; g.gain.value = v[1];
+        o.connect(g); g.connect(lp); o.start(); nodes.push(o);
+      });
+      const len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+      let last = 0;
+      for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+      const src = a.createBufferSource(), ng = a.createGain();
+      src.buffer = buf; src.loop = true; ng.gain.value = 0.5;
+      src.connect(ng); ng.connect(lp); src.start(); nodes.push(src);
+      hum = { a: a, out: out, nodes: nodes };
+    }
+    if (!hum) return;
+    hum.out.gain.setTargetAtTime(lvl * 0.16, hum.a.currentTime, 0.6);
+    if (!lvl) {
+      const h = hum; hum = null;
+      setTimeout(() => { h.nodes.forEach((n) => { try { n.stop(); } catch (e) { /* ignore */ } }); try { h.out.disconnect(); } catch (e) { /* ignore */ } }, 3000);
+    }
+  }
+
   function setWhen(t) {
     /* a new time of day: the music recovers. But once it has gone wrong at night it stays wrong until morning. */
     if (when.textContent !== t && !/夜晚|深夜/.test(t)) { bgmHaunt = false; bgmHush = false; bgmDeep = BGM_DEEP.indexOf(curKey) >= 0; }
     when.textContent = t;
+    bgmScene(curKey || '');
     stormUpdate();
+    birdsUpdate();
+    humUpdate();
   }
   function setGoal(t) { $('goal').hidden = !t; $('goal').textContent = t ? '目標：' + t : ''; }
   const tip = (t) => line('tip', t, '提示');
@@ -1052,17 +1243,21 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     return cache[key];
   }
   let cur = 0, curKey = null, artToken = 0;
-  const FLICKER = ['ceiling']; /* pictures whose light flickers */
+  const FLICKER = []; /* pictures whose light flickers by CSS alone (the ceiling now has drawn frames, see ANIM) */
   function fx(name) {
     artEl.classList.remove('fx-shock');
     if (name && !reduced) { void artEl.offsetWidth; artEl.classList.add('fx-' + name); }
   }
   function art(key, effect) {
+    /* the corridor has a daylight version (same drawing, lit through the window; made by tools/daylight.py) */
+    if (key === 'hall' && !/夜晚|深夜/.test(when.textContent)) key = 'hall_day';
     if (key === curKey) { if (effect) fx(effect); return; }
     curKey = key;
     artEl.classList.toggle('fx-flicker', FLICKER.indexOf(key) >= 0);
     bgmScene(key || ''); /* also when the picture is cleared: with nobody on screen the tune may play again */
     stormUpdate();
+    birdsUpdate();
+    humUpdate();
     hideFrames();
     const token = ++artToken;
     if (!key) { imgs[0].classList.remove('on'); imgs[1].classList.remove('on'); fx(null); return; }
@@ -1077,17 +1272,18 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
         show.classList.remove('on');
         cur = 1 - cur;
         fx(effect || null);
+        animStart(key);
       };
       if (hide.decode) hide.decode().then(swap).catch(swap); else swap();
     });
   }
   /* frame animation: lay a second drawing of the same picture on top for a moment.
      The extra frames differ from the base picture only around the eyes or the mouth. */
-  const BLINK = /*BLINK*/{"nurse":"nurse_b","nurse2":"nurse2_b","he":"he_b","zhou":"zhou_b","zhou2":"zhou2_b","wu":"wu_b","gao":"gao_b","wang":"wang_b","gao2":"gao2_b","chen":"chen_b"}/*END*/, MOUTH = /*MOUTH*/{"nurse":"nurse_m","nurse2":"nurse2_m","he":"he_m","zhou":"zhou_m","zhou2":"zhou2_m","wu":"wu_m","gao":"gao_m","wang":"wang_m"}/*END*/;
+  const BLINK = /*BLINK*/{"nurse_talk":"nurse_talk_b","gao_talk":"gao_talk_b","nurse":"nurse_b","nurse2":"nurse2_b","he":"he_b","zhou":"zhou_b","zhou2":"zhou2_b","wu":"wu_b","gao":"gao_b","wang":"wang_b","gao2":"gao2_b","chen":"chen_b"}/*END*/, MOUTH = /*MOUTH*/{"nurse_talk":"nurse_talk_m","gao_talk":"gao_talk_m","nurse":"nurse_m","nurse2":"nurse2_m","he":"he_m","zhou":"zhou_m","zhou2":"zhou2_m","wu":"wu_m","gao":"gao_m","wang":"wang_m"}/*END*/;
   const mouthImg = $('imgMouth');
   /* EYES_AT / MOUTH_AT = where the eyes and the mouth are in each picture (centre x, centre y, radius x, radius y
      as fractions). A frame is clipped to that ellipse, so nothing else in the picture can shimmer when it shows. */
-  const EYES_AT = { nurse: [0.52, 0.235, 0.13, 0.045], nurse2: [0.625, 0.375, 0.19, 0.095], he: [0.58, 0.247, 0.125, 0.055],
+  const EYES_AT = { nurse_talk: [0.508, 0.217, 0.12, 0.05], gao_talk: [0.50, 0.225, 0.13, 0.05], nurse: [0.52, 0.235, 0.13, 0.045], nurse2: [0.625, 0.375, 0.19, 0.095], he: [0.58, 0.247, 0.125, 0.055],
     zhou: [0.645, 0.152, 0.09, 0.035], zhou2: [0.635, 0.39, 0.19, 0.095], wu: [0.51, 0.185, 0.11, 0.04],
     gao: [0.545, 0.23, 0.12, 0.048], gao2: [0.53, 0.295, 0.12, 0.045], wang: [0.41, 0.143, 0.07, 0.033], chen: [0.513, 0.195, 0.108, 0.048] };
   function clipFrame(img, at) {
@@ -1112,7 +1308,132 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     blinkImg.classList.remove('on');
     await sleep(160);
   }
-  function hideFrames() { blinkImg.classList.remove('on'); mouthImg.classList.remove('on'); }
+  function hideFrames() { blinkImg.classList.remove('on'); mouthImg.classList.remove('on'); animStop(); }
+
+  /* scene animation: extra drawings of the same picture (img/<key>_a2.jpg ... _aN.jpg) laid over the base in turn.
+     Every frame is identical to the base outside the part that moves, so nothing else shimmers.
+     ms = time per frame for a steady loop; flicker = stay on the base and now and then flash a few frames.
+     clip = [left, top, right, bottom] as fractions: only that part of a frame is shown (the rest of the frame
+     file is blank, which keeps the files small). Frames are made from one drawing by tools/glow.py and flick.py.
+     wind = seconds per gust of the rustling sound.
+     seq = play the frames in a set order: [frame number (1 = the base picture, shown as 0), milliseconds] pairs.
+     lightning = nothing moves by itself; when thunder() strikes, frame 2 (the flash) and frame 3 (the afterglow)
+     are shown for an instant, so the window lights up together with the thunder (or give the [frame, ms] list).
+     once = with seq: play it through a single time and keep the last frame.
+     In seq and lightning lists a third number is a cross-fade in milliseconds into that frame. */
+  const ANIM = { outside: { n: 5, flicker: true, clip: [0.5, 0.38, 0.645, 0.525], wind: 3.2 }, ceiling: { n: 7, flicker: true },
+    flowers: { n: 36, ms: 110, clip: [0.1, 0.38, 0.885, 0.66] },
+    hall: { n: 3, lightning: true },
+    basement: { n: 7, flicker: true },
+    room: { n: 4, lightning: [[1, 130], [2, 170], [1, 80], [2, 320], [3, 800, 260], [0, 0, 1100]] },
+    pill: { n: 5, once: true, seq: [[0, 1700], [1, 520, 460], [2, 520, 460], [3, 520, 460], [4, 0, 460]] } };
+  const animImg = $('imgAnim'), animLayers = [animImg, $('imgAnim2')];
+  let animTimer = null, animFlash = null;
+  function animStop() { if (animTimer) { clearTimeout(animTimer); animTimer = null; } animLayers.forEach((l) => { l.style.transition = ''; l.style.zIndex = ''; l.classList.remove('on'); }); animFlash = null; windStop(); }
+
+  /* the rustle of leaves for a windy picture: hissing noise that swells once per loop of the animation, so the
+     sound rises as the gust crosses the tree. Synthesised; it follows the 環境聲 switch. */
+  let windSnd = null;
+  function windStart(period) {
+    if (windSnd || !sfxOn) return;
+    try {
+      if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if (ctx.state === 'suspended') ctx.resume();
+      const a = ctx, len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      const src = a.createBufferSource(), hp = a.createBiquadFilter(), bp = a.createBiquadFilter(), g = a.createGain();
+      const lfo = a.createOscillator(), lg = a.createGain(), tr = a.createOscillator(), tg = a.createGain();
+      src.buffer = buf; src.loop = true;
+      hp.type = 'highpass'; hp.frequency.value = 1700;
+      bp.type = 'bandpass'; bp.frequency.value = 4300; bp.Q.value = 0.6;
+      g.gain.value = 0;
+      lfo.frequency.value = 1 / period; lg.gain.value = 0.04;   /* the gust: one swell per loop */
+      tr.frequency.value = 7.3; tg.gain.value = 0.012;           /* the leaves trembling inside it */
+      src.connect(hp); hp.connect(bp); bp.connect(g); g.connect(a.destination);
+      lfo.connect(lg); lg.connect(g.gain); tr.connect(tg); tg.connect(g.gain);
+      g.gain.setTargetAtTime(0.055, a.currentTime, 0.35);
+      src.start(); lfo.start(); tr.start();
+      windSnd = { a: a, g: g, nodes: [src, lfo, tr] };
+    } catch (e) { windSnd = null; }
+  }
+  function windStop() {
+    if (!windSnd) return;
+    const w = windSnd; windSnd = null;
+    try { w.g.gain.cancelScheduledValues(w.a.currentTime); w.g.gain.setTargetAtTime(0, w.a.currentTime, 0.25); } catch (e) { /* ignore */ }
+    setTimeout(() => { w.nodes.forEach((n) => { try { n.stop(); } catch (e) { /* ignore */ } }); try { w.g.disconnect(); } catch (e) { /* ignore */ } }, 1500);
+  }
+  function animStart(key) {
+    animStop();
+    const A = ANIM[key];
+    if (!A || reduced) return;
+    if (A.wind) windStart(A.wind);
+    const names = [];
+    for (let i = 2; i <= A.n; i++) names.push(key + '_a' + i);
+    Promise.all(names.map(load)).then((srcs) => {
+      if (curKey !== key) return;
+      const clip = () => {
+        if (!A.clip) { animLayers.forEach((l) => { l.style.clipPath = ''; }); return true; }
+        const b = imgs[cur], nw = b.naturalWidth, nh = b.naturalHeight, Wd = animImg.clientWidth, Hd = animImg.clientHeight;
+        if (!nw || !nh || !Wd || !Hd) return false;
+        const sc = Math.min(Wd / nw, Hd / nh), dw = nw * sc, dh = nh * sc, ox = (Wd - dw) / 2, oy = (Hd - dh) / 2;
+        const cp = 'inset(' + (oy + A.clip[1] * dh).toFixed(1) + 'px ' + (Wd - ox - A.clip[2] * dw).toFixed(1) + 'px ' +
+          (Hd - oy - A.clip[3] * dh).toFixed(1) + 'px ' + (ox + A.clip[0] * dw).toFixed(1) + 'px)';
+        animLayers.forEach((l) => { l.style.clipPath = cp; });
+        return true;
+      };
+      /* show frame k (0 = the base picture). fade = milliseconds to melt into it; without it the change is a cut.
+         A fade uses the two layers in turn: the new frame rises over the old one, then the old one is dropped. */
+      let top = 0, turn = 0;
+      const show = (k, fade) => {
+        const f = fade || 0, mine = ++turn, up = animLayers[top], other = animLayers[1 - top];
+        if (k === 0 || !clip()) {
+          animLayers.forEach((l) => { l.style.transition = f ? 'opacity ' + f + 'ms ease-out' : ''; l.classList.remove('on'); });
+          return;
+        }
+        if (!f || !up.classList.contains('on')) {
+          other.style.transition = ''; other.classList.remove('on');
+          up.style.transition = f ? 'opacity ' + f + 'ms ease-in-out' : ''; up.style.zIndex = '';
+          up.src = srcs[k - 1]; up.classList.add('on');
+          return;
+        }
+        other.style.transition = 'none'; other.classList.remove('on');
+        other.src = srcs[k - 1]; other.style.zIndex = '2'; up.style.zIndex = '1';
+        void other.offsetWidth;
+        other.style.transition = 'opacity ' + f + 'ms ease-in-out'; other.classList.add('on');
+        top = 1 - top;
+        setTimeout(() => { if (turn === mine && curKey === key) { up.style.transition = 'none'; up.classList.remove('on'); } }, f + 40);
+      };
+      const pick = () => 1 + Math.floor(Math.random() * (A.n - 1));
+      let i = 0;
+      if (A.lightning) {
+        animFlash = () => {
+          const q = Array.isArray(A.lightning) ? A.lightning : [[1, 110], [0, 70], [1, 260], [2, 650, 240], [0, 0, 900]];
+          let j = 0;
+          const run = () => { if (curKey !== key || j >= q.length) return; show(q[j][0], q[j][2]); const w = q[j][1]; j += 1; if (w) animTimer = setTimeout(run, w); };
+          run();
+        };
+        return;
+      }
+      const step = () => {
+        if (curKey !== key) return;
+        if (A.seq) {
+          if (A.once && i >= A.seq.length) return; /* played through: the last frame stays */
+          const q = A.seq[i % A.seq.length]; i += 1; show(q[0], q[2]); if (q[1] || !A.once) animTimer = setTimeout(step, q[1]); return;
+        }
+        if (!A.flicker) { i = (i + 1) % A.n; show(i); animTimer = setTimeout(step, A.ms); return; }
+        const burst = Math.random() < 0.5 ? [pick(), 0] : [pick(), 0, pick(), 0];
+        let j = 0;
+        const run = () => {
+          if (curKey !== key) return;
+          if (j >= burst.length) { animTimer = setTimeout(step, 700 + Math.random() * 2800); return; }
+          show(burst[j]); j += 1;
+          animTimer = setTimeout(run, 60 + Math.random() * 120);
+        };
+        run();
+      };
+      animTimer = setTimeout(step, A.flicker ? 900 : A.ms);
+    });
+  }
   (function idleBlink() {
     setTimeout(() => {
       if (curKey && BLINK[curKey] && !document.hidden) blink(BLINK[curKey], 0);
@@ -1122,7 +1443,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   /* while a character speaks the open-mouth frame simply stays on; it closes when the line ends.
      MOUTH_AT = where the mouth is in each picture (centre x, centre y, radius x, radius y as fractions),
      so the mouth frame covers only the mouth and blinking still shows through. */
-  const MOUTH_AT = { nurse: [0.515, 0.36, 0.09, 0.045], nurse2: [0.565, 0.563, 0.105, 0.055], he: [0.565, 0.37, 0.085, 0.045],
+  const MOUTH_AT = { nurse_talk: [0.508, 0.297, 0.08, 0.04], gao_talk: [0.508, 0.342, 0.085, 0.045], nurse: [0.515, 0.36, 0.09, 0.045], nurse2: [0.565, 0.563, 0.105, 0.055], he: [0.565, 0.37, 0.085, 0.045],
     zhou: [0.653, 0.247, 0.065, 0.035], zhou2: [0.575, 0.655, 0.10, 0.05], wu: [0.525, 0.285, 0.065, 0.035],
     gao: [0.535, 0.335, 0.075, 0.04], wang: [0.42, 0.215, 0.045, 0.028] };
   function clipMouth(key) { clipFrame(mouthImg, MOUTH_AT[key]); }
@@ -1274,8 +1595,9 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     return new Promise((resolve) => {
       guideResolve = resolve;
       $('guide').hidden = false;
+      /* focus the button without letting the browser scroll down to it: the guide must open at its first line */
+      try { $('guideClose').focus({ preventScroll: true }); } catch (e) { $('guideClose').focus(); }
       $('guide').scrollTop = 0;
-      $('guideClose').focus();
     });
   }
   $('guideClose').addEventListener('click', () => {
@@ -1288,10 +1610,34 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     e.stopPropagation();
     if (startResolve) { const r = startResolve; startResolve = null; r('new'); }
   });
+  /* how many nights this player has finished (kept in the browser). A night can be chosen once the one before it is done. */
+  function nightsDone() { try { return parseInt(localStorage.getItem('qiku_done') || '0', 10) || (loadGame() ? 1 : 0); } catch (e) { return 0; } }
+  function markDone(n) { try { if (nightsDone() < n) localStorage.setItem('qiku_done', String(n)); } catch (e) { /* storage unavailable */ } }
+  const CHAPTERS = [
+    { t: '第一晚　敲四下', mode: 'new', need: 0 },
+    { t: '第二晚　點名', mode: 'n2', need: 1 },
+    { t: '第三晚　看海的人', mode: '', need: 2, soon: true }
+  ];
   $('contBtn').addEventListener('click', (e) => {
     e.stopPropagation();
-    if (startResolve) { const r = startResolve; startResolve = null; r('n2'); }
+    const list = $('chapList'), done = nightsDone();
+    list.textContent = '';
+    CHAPTERS.forEach((c) => {
+      const b = document.createElement('button'), open = !c.soon && done >= c.need;
+      b.type = 'button'; b.className = 'opt'; b.textContent = c.t; b.disabled = !open;
+      const sm = document.createElement('small');
+      sm.textContent = c.soon ? '製作中' : open ? (done > c.need ? '已玩過' : '可以開始') : '玩完前一晚後開放';
+      b.appendChild(sm);
+      b.addEventListener('click', () => {
+        $('chap').hidden = true;
+        if (startResolve) { const r = startResolve; startResolve = null; r(c.mode); }
+      });
+      list.appendChild(b);
+    });
+    $('chap').hidden = false;
+    $('chapClose').focus();
   });
+  $('chapClose').addEventListener('click', () => { $('chap').hidden = true; });
   /* the state at the end of the first night is kept, so the second night can be started from the cover */
   function saveGame() { try { localStorage.setItem('qiku_save2', JSON.stringify(S)); } catch (e) { /* storage unavailable */ } }
   function loadGame() {
@@ -1312,14 +1658,10 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     const cover = $('cover');
     cover.classList.remove('skip');
     cover.hidden = false;
-    $('contBtn').hidden = !N2_ON || !loadGame();
+    $('contBtn').hidden = !N2_ON || nightsDone() < 1; /* only for someone who has finished the first night */
     const mode = await new Promise((resolve) => { startResolve = resolve; });
-    let seen = false;
-    try { seen = localStorage.getItem('qiku_guide') === '1'; } catch (e) { seen = false; }
-    if (!seen) {
-      await openGuide();
-      try { localStorage.setItem('qiku_guide', '1'); } catch (e) { /* storage unavailable */ }
-    }
+    /* a new game always begins with the guide: what the player is here to do, and how a day goes */
+    if (mode !== 'n2') await openGuide();
     cover.hidden = true;
     audio();
     clear();
@@ -1347,7 +1689,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     art('ceiling');
     await narr('天花板是陌生的。日光燈管有一支在閃。');
     await narr('你想坐起來。手背上貼著一塊膠布，底下有針孔。');
-    art('nurse');
+    art('nurse_talk');
     await say('護理長', '「醒了？慢慢來，不要急。」');
     await say('護理長', '「你在家裡倒了兩天，才被鄰居發現。昨天送來的。這裡是七窟安養院。」');
     const c = await choose(['「我怎麼會在這裡？」', '「我想回家。」', '（不說話）']);
@@ -1376,20 +1718,20 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     clear();
     if (k === 'lan') {
       art('lan');
-      await say('蘭嬸', '「來來來，新來的喔？呷飽未？」');
+      await say('蘭嬸', '「來來來，新來的喔？吃飽了沒？」');
       await narr('她塞給你一碗飯，又盛了一碗，放在旁邊的空位上。');
-      await say('蘭嬸', '「這碗是要給那個囝仔的，伊猶未呷。」');
-      const c = await choose(['「哪個囝仔？」', '（不問，把飯吃完）']);
+      await say('蘭嬸', '「這碗是要給那個孩子的，他還沒吃。」');
+      const c = await choose(['「哪個孩子？」', '（不問，把飯吃完）']);
       if (c === 0) {
         await narr('她的手停在半空。');
-        await say('蘭嬸', '「……就是那個囝仔啊。」');
+        await say('蘭嬸', '「……就是那個孩子啊。」');
         art('lan2');
         await narr('她看著那張空椅子，笑容慢慢不見了。');
-        await say('蘭嬸', '「奇怪，伊叫啥物名……」');
+        await say('蘭嬸', '「奇怪，他叫什麼名字……」');
         art('lan');
         await narr('過了幾秒，她又笑起來，像什麼都沒發生。');
-        await say('蘭嬸', '「緊呷，飯冷去就歹呷。」');
-        note('蘭嬸每餐多盛一碗飯，給「那個囝仔」。這裡沒有小孩。');
+        await say('蘭嬸', '「快吃，飯冷了就不好吃。」');
+        note('蘭嬸每餐多盛一碗飯，給「那個孩子」。這裡沒有小孩。');
       } else {
         art('lan2');
         await narr('你吃完了。旁邊那碗飯，從頭到尾沒有人去動。');
@@ -1441,11 +1783,11 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (k === 'xiu') {
       art('xiu');
       await narr('她閉著眼睛，雙手握在胸前，唱一首你沒聽過的歌。');
-      await say('秀琴阿嬤', '「月娘光光照窗前，阿母等囝仔轉來——」');
+      await say('秀琴阿嬤', '「月亮光光照窗前，媽媽等孩子回來——」');
       const c = await choose(['（坐下來聽完）', '（走開）']);
       if (c === 0) {
         await narr('唱到第二段，詞變了。');
-        await say('秀琴阿嬤', '「……彼一暝，有人牽囝仔欲走。是我去講的，是我去講的——」');
+        await say('秀琴阿嬤', '「……那一晚，有人牽著孩子要走。是我去說的，是我去說的——」');
         await narr('她突然停住，睜開眼睛。');
         await say('秀琴阿嬤', '「我剛剛唱了什麼？」');
         const d = await choose(['（把她唱的詞告訴她）', '「很好聽。」']);
@@ -1457,7 +1799,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
           art('nurse2');
           await narr('護理長快步走過來，看了你一眼。');
           S.alert += 1;
-          note('秀琴阿嬤的歌唱到一半換了詞：有人牽著囝仔要走，是她去講的。');
+          note('秀琴阿嬤的歌唱到一半換了詞：有人牽著孩子要走，是她去講的。');
         } else {
           await say('秀琴阿嬤', '「是喔？我自己都不記得了。」');
           note('秀琴阿嬤唱歌會換詞。她自己不記得。');
@@ -1490,7 +1832,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       const c = await choose(['「阿嬤，妳好。」', '（繞到旁邊，看她的臉）']);
       if (c === 0) {
         await narr('她沒有回頭。');
-        art('nurse');
+        art('nurse_talk');
         await say('護理長', '「陳阿嬤不認得人了。她每天都坐在那裡看海。」');
         art('chen2');
         await narr('你順著她的視線看出去。窗外是山，和中庭那棵榕樹。');
@@ -1532,11 +1874,12 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     await narr('一個上午，你見了三個人。每個人說的話都缺了一塊，像被人挖走了什麼。');
     await narr('護理長在走廊那頭拍了拍手。住民們放下手邊的事，一個接一個站起來，排成一列。');
     await narr('沒有人說要去哪裡。你跟在最後面，被帶往走廊盡頭的一扇門。門上貼著一張紙：懷舊治療室。');
-    clear(); art('gao');
+    clear(); art('gao_talk');
     await narr('懷舊治療室的牆上貼滿老照片。高老師大約三十五歲，說話的時候會一直看著你的眼睛。');
     await say('高老師', '「歡迎。不用緊張，我們就是聊聊天。」');
     await tip('這些問題沒有標準答案。想說什麼、說多少，由你決定。');
     await say('高老師', '「人老了，記憶就像沒曬的被子，要常常拿出來曬一曬。」');
+    art('gao'); /* now he really is holding photographs out */
     await narr('他在桌上排開三張老照片。');
     history.push({ cls: 'say', text: '「看到哪一張，會讓你想起什麼？」', who: '高老師' });
     setBox('say', '「看到哪一張，會讓你想起什麼？」', '高老師');
@@ -1554,12 +1897,12 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     await narr('照片裡是一條長長的走廊，盡頭有一扇窗。');
     await narr('你沒有來過這裡。可是你知道，走到底要右轉。右轉之後，有樓梯往下。');
     const d = await choose(['「這條走廊，我好像走過。」', '「沒印象。」', '「這是哪裡？」']);
-    if (d !== 0) art('gao');
+    if (d !== 0) art('gao_talk');
     if (d === 0) {
       S.alert += 2;
       art('gao2', 'shock');
       await narr('他的筆停了。只有一下。');
-      art('gao');
+      art('gao_talk');
       await say('高老師', '「是嗎？很多老房子都長得很像。」');
       await narr('他笑了，把照片收回去。');
     } else if (d === 1) {
@@ -1572,7 +1915,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     }
     await say('高老師', '「最後一個問題。最近睡得好嗎？有沒有做什麼奇怪的夢？」');
     const e = await choose(['「睡得很好。」', '「不太記得了。」']);
-    if (e === 1) { S.alert += 1; art('gao2'); await narr('他又寫了幾個字。這次寫得比較久。'); art('gao'); }
+    if (e === 1) { S.alert += 1; art('gao2'); await narr('他又寫了幾個字。這次寫得比較久。'); art('gao_talk'); }
     await say('高老師', '「今天就到這裡。你做得很好。」');
   }
 
@@ -1678,6 +2021,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     }
     art('basement');
     await narr('樓梯間的門也沒有鎖。往下一層，是洗衣房，和鍋爐低低的聲音。');
+    rat();
+    await narr('牆腳有東西很快地竄過去，吱了一聲。是老鼠。');
     await narr('再往裡走。頭頂的日光燈閃了兩下，熄了。');
     await knock(4, 0.6);
     await narr('就在你腳邊。牆角的踢腳板，裂開了一道縫。');
@@ -1772,7 +2117,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     clear(); art(null); setWhen('第二天・早晨'); setGoal('檢查筆記本');
     art('room_day');
     await narr('天亮了。');
-    if (S.went && S.met) { art('scar'); await narr('你捲起左手的袖子。那道疤還在。'); art('room_day'); }
+    /* the scar is only known to a player who was told about it at the wall (the "I have never been here" answer) */
+    if (S.went && S.met && S.answered === 'deny') { art('scar'); await narr('你捲起左手的袖子。那道疤還在。'); art('room_day'); }
     await narr('你做的第一件事，是把手伸到床墊底下。');
     S.struck = true;
     showPaper(true, false);
@@ -1867,10 +2213,17 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   async function title2() {
     clear(); art(null); setWhen('七窟'); setGoal('');
     setBox('title', '第二晚　點名');
+    /* spoken like the rhyme that opens the first night (clips made by tools/gen_narration.py) */
+    const speak = (name) => {
+      if (!voiceOn) return;
+      try { const a = new Audio('voice/' + name + '.mp3'); const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* ignore */ }
+    };
     bigText('念到名字的人，');
-    await sleep(2000);
+    speak('n_roll1');
+    await sleep(2600);
     bigText('要答「有」。');
-    await sleep(2300);
+    speak('n_roll2');
+    await sleep(2600);
     bigText('');
   }
 
@@ -1950,19 +2303,19 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (k === 'xiu') {
       art('xiu');
       await narr(S.seen.xiu ? '她還是坐在老位子，閉著眼睛唱歌。同一首。' : '活動室裡，一位阿嬤閉著眼睛，雙手握在胸前唱歌。');
-      await say('秀琴阿嬤', '「月娘光光照窗前，阿母等囝仔轉來——」');
+      await say('秀琴阿嬤', '「月亮光光照窗前，媽媽等孩子回來——」');
       await narr('隔壁桌有人用指節敲著桌面，替她打拍子。');
       await raps(4, 0.22);
       art('xiu2', 'shock');
       await narr('歌斷了。她的肩膀縮起來，眼睛睜得很大。');
-      await say('秀琴阿嬤', '「毋通開門。四下，毋通開門。」');
+      await say('秀琴阿嬤', '「不可以開門。四下，不可以開門。」');
       const c = await choose(['「阿嬤，是誰在敲？」', '（握住她的手，等她平靜下來）']);
       if (c === 0) {
         S.pressedXiu = true; S.alert += 1;
-        await say('秀琴阿嬤', '「是伊。伊猶在下面。」');
-        await say('秀琴阿嬤', '「彼一暝有人牽伊的手，行到樓梯口。是我去講的。我驚，我真正驚——」');
+        await say('秀琴阿嬤', '「是他。他還在下面。」');
+        await say('秀琴阿嬤', '「那一晚有人牽著他的手，走到樓梯口。是我去說的。我怕，我真的怕——」');
         await narr('她看著你的臉，看了很久。');
-        await say('秀琴阿嬤', '「……你的手，猶閣遮爾大。」');
+        await say('秀琴阿嬤', '「……你的手，還是這麼大。」');
         art('xiu');
         await narr('然後那個眼神散了。她又笑起來。');
         await say('秀琴阿嬤', '「你是新來的喔？我唱歌給你聽。」');
@@ -1970,9 +2323,9 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       } else {
         await narr('她的手很冰。過了很久，才慢慢不抖了。');
         art('xiu');
-        await say('秀琴阿嬤', '「多謝。你的手真燒。」');
-        await say('秀琴阿嬤', '「較早嘛有一個少年的，手真燒。逐工牽一个囝仔，佇走廊行來行去。」');
-        note('秀琴阿嬤聽到敲四下很害怕。她說以前有個年輕人，每天牽著一個囝仔在走廊走。');
+        await say('秀琴阿嬤', '「謝謝。你的手好暖。」');
+        await say('秀琴阿嬤', '「以前也有一個年輕人，手好暖。每天牽著一個孩子，在走廊走來走去。」');
+        note('秀琴阿嬤聽到敲四下很害怕。她說以前有個年輕人，每天牽著一個孩子在走廊走。');
       }
     }
     if (k === 'mu') {
@@ -1992,38 +2345,38 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
         await say('木伯', '「十四。」');
         await narr('過了很久。');
         art('mu2');
-        await say('木伯', '「閣一个。猶未。」');
+        await say('木伯', '「還有一個。還沒。」');
         await narr('他抬起頭。看的不是你，是三樓的窗戶。');
         note('我問木伯花圃底下有什麼。他說：「十四。」又說還有一個，還沒。');
       }
     }
     if (k === 'lan') {
       art('lan');
-      await say('蘭嬸', '「來，呷飯。今仔日有滷肉。」');
+      await say('蘭嬸', '「來，吃飯。今天有滷肉。」');
       await narr('她照樣盛了兩碗。一碗給你，一碗放在旁邊的空位上。');
       const opts = S.candy ? ['「蘭嬸，妳有沒有糖？」', '「那碗飯，等一下要端去哪裡？」'] : ['「那碗飯，等一下要端去哪裡？」', '（安靜吃飯）'];
       const c = await choose(opts);
       if (S.candy && c === 0) {
         await narr('她的手在圍裙上擦了擦，從左邊口袋摸出一顆玻璃紙包的糖。');
-        await say('蘭嬸', '「是欲予彼个囝仔的，著無？」');
+        await say('蘭嬸', '「是要給那個孩子的，對不對？」');
         const d = await choose(['「對。」', '「是我自己要吃的。」']);
         S.gotCandy = true;
         if (d === 0) {
           art('lan2');
           await narr('她沒有笑。把糖放進你的手心，再把你的手指一根一根合起來。');
-          await say('蘭嬸', '「共伊講，阿蘭姨猶會記得伊愛呷甜。」');
+          await say('蘭嬸', '「跟他說，阿蘭姨還記得他愛吃甜。」');
           art('lan');
-          note('蘭嬸給我一顆糖，要我帶給「那個囝仔」。她說她還記得他愛吃甜。');
+          note('蘭嬸給我一顆糖，要我帶給「那個孩子」。她說她還記得他愛吃甜。');
         } else {
-          await say('蘭嬸', '「老人呷甜，會蛀齒喔。」');
+          await say('蘭嬸', '「老人吃甜的，會蛀牙喔。」');
           await narr('她還是把糖塞給了你。');
           note('跟蘭嬸要到一顆糖。');
         }
       } else if (opts[c].indexOf('那碗飯') >= 0) {
         await narr('她想了一下，像在想一件再平常不過的事。');
-        await say('蘭嬸', '「端去下跤啊。燒水彼間的門口。逐工攏按呢。」');
+        await say('蘭嬸', '「端去樓下啊。燒水那間的門口。每天都這樣。」');
         art('lan2');
-        await say('蘭嬸', '「……奇怪。我是端去予啥人？」');
+        await say('蘭嬸', '「……奇怪。我是端去給誰？」');
         art('lan');
         note('蘭嬸每天把多盛的那碗飯端到樓下，燒水那間的門口。她不記得是端給誰。');
       } else {
@@ -2055,14 +2408,14 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   async function therapy2() {
     setWhen('第二天・下午'); setGoal('參加高老師的懷舊治療'); clear(); art('hall');
     await narr('走廊上的鐘敲了兩下。大家又排成一列。今天你知道隊伍要去哪裡了。');
-    clear(); art('gao');
+    clear(); art('gao_talk');
     await say('高老師', '「今天我們看一張合照。」');
     await narr('他從牛皮紙信封裡抽出一張照片，放在桌上，轉向你。');
     art('photo_staff');
     await narr('一九五三年。二十幾個人站成三排，穿著白衣服，背後就是這棟樓。');
-    await narr('前排有一個人被剪掉了。剪得很仔細，只留下半邊臉頰，和臉頰上的一顆痣。');
+    await narr('前排有一個人被剪掉了。剪得很乾淨，什麼都沒有留下。只有她腳邊的地上，還放著一個紅色的糖果盒。');
     await narr('後排最旁邊，站著一個拿拖把的年輕人。他的眉毛和眼睛，你每天早上都在鏡子裡看到。');
-    art('gao');
+    art('gao_talk');
     await say('高老師', '「這張裡面，有沒有你覺得眼熟的人？」');
     art('photo_staff');
     const c = await choose(['「後排那個年輕人，很像我。」', '「這個被剪掉的人是誰？」', '「沒有。都不認識。」']);
@@ -2070,28 +2423,28 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       S.alert += 2; S.admit = true;
       art('gao2', 'shock');
       await narr('他沒有說話。把照片翻過來。背面用鉛筆寫著一排名字，其中一個被擦掉了。');
-      art('gao');
+      art('gao_talk');
       await say('高老師', '「人到了這個年紀，看誰都像自己。」');
       await say('高老師', '「不過既然你有興趣，再給你看一張。」');
       art('photo_door');
       await narr('第二張。同一個年輕人，蹲在一扇門前。門縫底下，伸出一隻很小的手。');
       await narr('兩個人的手指勾在一起。');
-      art('gao');
+      art('gao_talk');
       await say('高老師', '「好了。看太多會累。」');
       note('一九五三年的合照：後排有個拿拖把的年輕人，長得像我。另一張照片，他跟門縫底下一隻小手勾著手指。');
     } else if (c === 1) {
       S.alert += 1;
-      art('gao');
+      art('gao_talk');
       await say('高老師', '「不知道。我拿到的時候就是這樣了。」');
       art('photo_staff');
-      await narr('他用拇指蓋住那半邊臉頰。蓋了一下，才把手移開。');
-      note('一九五三年的合照，前排有一個人被剪掉，只剩半邊臉頰和一顆痣。');
+      await narr('他用拇指蓋住那個糖果盒。蓋了一下，才把手移開。');
+      note('一九五三年的合照，前排有一個人被剪掉了。她腳邊的地上有一個紅色的糖果盒。');
     } else {
-      art('gao');
+      art('gao_talk');
       await say('高老師', '「沒關係。」');
       await narr('他把照片收回信封。收進去之前，又對著你停了兩秒。');
     }
-    art('gao');
+    art('gao_talk');
     await say('高老師', '「昨晚睡得好嗎？」');
     const e = await choose(['「一覺到天亮。」', '「半夜好像有人在敲東西。」']);
     if (e === 1) {
@@ -2099,7 +2452,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       art('gao2');
       await say('高老師', '「老房子，水管會響。」');
       await narr('他低頭寫了幾個字。');
-      art('gao');
+      art('gao_talk');
     }
     await say('高老師', '「今天就到這裡。明天見。」');
   }
@@ -2144,19 +2497,44 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   async function drugged2() {
     clear(); art(null); setWhen('第二天・深夜'); setGoal('');
     await narr('黑。');
+    await narr('藥把你往下拉。拉得很深，深到你聽不見外面的雨。');
+    art('dream');
+    await narr('然後是一扇門。你認得這扇門。昨晚的夢裡，它只開了一條縫。');
+    await narr('你的手很年輕。你蹲下來，用指節在門板上敲。');
+    await knock(3, 0.3);
+    await say('小孩的聲音', '「三下。是人。」');
+    await narr('門從裡面開了。這一次，是你先伸手進去。');
+    art('dream_hand');
+    await narr('你牽到一隻手。很小，掌心都是汗。');
+    await narr('他另一隻手抱著一個鐵盒。每走一步，盒子裡就輕輕響一下。');
+    await say('年輕的你', '「盒子抱緊。不要讓它響。」');
     art('photo_hall');
     await narr('又是那條走廊。這一次是晚上，只有盡頭的窗戶透著一點光。');
+    await narr('你們貼著牆走。他在數步子，數得很小聲。');
+    await say('小孩的聲音', '「四十一。四十二。上次你一個人走，是四十七步。」');
+    await narr('你不記得什麼時候告訴過他。他記得。');
     art('dream_hand');
-    await narr('你的手很年輕。手裡牽著另一隻手，很小，掌心都是汗。');
     await say('年輕的你', '「不要出聲。走到樓梯口就好了。」');
     await say('小孩的聲音', '「大哥哥，外面真的有海嗎？」');
-    await narr('你沒有回答。背後很遠的地方，有人在唱歌。唱到一半，停了。');
-    await narr('然後是很多人的腳步聲。');
+    await say('小孩的聲音', '「她說，等我好了，就帶我去看海。」');
+    await narr('你沒有回答。你不知道他說的「她」是誰。夢裡的你知道。');
+    await narr('背後很遠的地方，有人在唱歌。月亮光光照窗前。');
+    await narr('唱到一半，停了。');
+    await narr('樓梯口就在前面。四十六。');
+    await narr('然後是很多人的腳步聲，和晃上來的燈。');
+    await narr('有人喊你的名字。不是你現在用的這個名字。');
+    await narr('你蹲下來，把那個鐵盒往他懷裡按緊。');
+    await say('年輕的你', '「拿好。不管誰問，都不要給。」');
+    await say('小孩的聲音', '「我不會忘。」');
     art(null);
     await knock(4, 0.5);
     await narr('四下。');
     await narr('那隻小手，從你的手裡被抽走了。');
-    note('又夢到那條走廊。我牽著一個小孩往樓梯口走。有人在唱歌，唱到一半停了。');
+    await narr('有人按住你的手臂。針頭很涼。');
+    await narr('一個男人的聲音，離得很近，很疲倦。忘記就好。忘記就好。');
+    await narr('你想睜開眼睛。睜不開。只有右手還握著，像還牽著什麼。');
+    note('又夢到那條走廊。我敲三下，門開了，我牽著一個小孩往樓梯口走。他抱著一個鐵盒。有人在唱歌，唱到一半停了。');
+    note('夢裡有人喊我的名字。不是我現在的名字。');
   }
 
   async function office() {
@@ -2236,7 +2614,8 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   async function meet2() {
     S.went2 = true;
     clear(); setGoal('跟牆裡的人說話'); art('basement');
-    await narr('洗衣房。鍋爐。同一盞壞掉的日光燈。');
+    rat();
+    await narr('洗衣房。鍋爐。老鼠。同一盞壞掉的日光燈。');
     art('crack');
     if (S.met) {
       await it('「你今天比較晚。我敲了三輪。」');
@@ -2263,7 +2642,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       S.checked = true; S.trust += 1;
       await narr('一隻手把筆記本接了過去。翻頁的聲音很快，像他早就知道每一頁寫了什麼。');
       await it('「這一行不是你寫的。」');
-      art('notebook');
+      art('notebook_crack');
       await narr('筆記本被推了出來，翻在最後一頁。「晚上的藥要吃」那一行，被指甲劃了一道。');
       art('crack');
       await it('「你寫『的』，最後一筆會往上勾。他不會。」');
@@ -2316,11 +2695,11 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     await narr('沒有歌聲。');
     art('bed_empty');
     await narr('活動室旁邊那間房，門開著。床單已經換過，鋪得很平。');
-    art('nurse');
+    art('nurse_talk');
     await say('護理長', '「秀琴阿嬤昨天夜裡走了。睡夢中走的，很安詳。」');
     await say('護理長', '「這個年紀，是福氣。」');
     if (S.pressedXiu) {
-      art('gao');
+      art('gao_talk');
       await narr('高老師從你身邊經過，停了一下。');
       await say('高老師', '「她昨天跟你聊得很開心。」');
       await narr('他的聲音很輕，像在安慰你。');
@@ -2347,9 +2726,16 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     row('懷舊治療', S.admit ? '你認出了照片裡的人' : S.alert >= 4 ? '你說了一些' : '你幾乎什麼都沒說');
     row('秀琴阿嬤', S.pressedXiu ? '她走的前一天，你問了她的歌' : '夜裡走了');
     panel.appendChild(box);
+    markDone(2);
     track('玩完：第二晚', summary());
     prompt('目前做到第二晚。第三晚「看海的人」還在製作中。');
-    const c = await choose(['重玩第二晚', '從頭再玩一次']);
+    let c = 0;
+    for (;;) {
+      c = await choose(['留言給作者', '重玩第二晚', '從頭再玩一次']);
+      if (c !== 0) break;
+      await openFeedback('第二晚', box.innerText);
+    }
+    c -= 1;
     $('bookBtn').hidden = true;
     run(c === 0 ? 'n2' : '');
   }
@@ -2377,7 +2763,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       await room();
       if (S.took) await drugged(); else await night();
       await morning();
-      saveGame();
+      saveGame(); markDone(1);
       const again = (await ending()) === 1;
       if (again) { $('bookBtn').hidden = true; run(); return; }
       track('開始：第二晚', '接著第一晚');

@@ -1,5 +1,5 @@
 """Narrator clips that are not dialogue lines (gen_voice.py only handles say()/it() lines).
-Currently: the two halves of the opening rhyme, 人敲三 / 鬼敲四.
+Currently: the opening rhyme of the first night (人敲三 / 鬼敲四) and the title card of the second (念到名字的人 / 要答「有」).
 usage: python tools/gen_narration.py <七窟_原型 folder>
 needs: edge-tts, numpy, miniaudio, lameenc (same as gen_voice.py)"""
 import asyncio, os, sys, tempfile
@@ -9,7 +9,9 @@ import edge_tts, miniaudio, lameenc
 root = sys.argv[1]
 SR = 24000
 # file name -> text. A low, slow voice; 鬼敲四 is slower and lower still.
-CLIPS = {'n_knock3': ('人敲三', -34, -22), 'n_knock4': ('鬼敲四', -42, -34)}
+CLIPS = {'n_knock3': ('人敲三', -34, -22), 'n_knock4': ('鬼敲四', -42, -34),
+         # the second night's title card
+         'n_roll1': ('念到名字的人', -34, -22), 'n_roll2': ('要答，有', -42, -34)}
 VOICES = ['zh-TW-YunJheNeural', 'zh-CN-YunjianNeural']  # Taiwan voice first, fallback if it fails
 
 
