@@ -1570,13 +1570,14 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     if (sig === el.dataset.sig) return;
     const first = !el.dataset.sig; el.dataset.sig = sig;
     body.textContent = '';
-    const mark = (li, t) => { if (!first && !sideSeen[t]) li.classList.add('new'); sideNow[t] = 1; return li; }, sideNow = {};
+    let fresh = 0, freshGoal = false;
+    const mark = (li, t, isGoal) => { if (!first && !sideSeen[t]) { li.classList.add('new'); if (isGoal) freshGoal = true; else fresh += 1; } sideNow[t] = 1; return li; }, sideNow = {};
     const add = (tag, text, cls) => { const d = document.createElement(tag); d.textContent = text; if (cls) d.className = cls; body.appendChild(d); return d; };
     if (S.dl && day >= 0 && day < 4) { const d = add('div', '', ''); d.id = 'sideDay'; d.append('離十五號還有'); const b = document.createElement('b'); b.textContent = String(4 - day); d.append(b, '天'); }
     if (goalNow || tasks.length) {
       add('h4', '現在要做的事');
       const ul = add('ul', '');
-      if (goalNow) { const li = document.createElement('li'); li.textContent = goalNow; ul.appendChild(mark(li, goalNow.replace(/（.*?）/g, ''))); }
+      if (goalNow) { const li = document.createElement('li'); li.textContent = goalNow; ul.appendChild(mark(li, goalNow.replace(/（.*?）/g, ''), true)); }
       tasks.forEach((x) => { const li = document.createElement('li'); li.textContent = '他說：' + x[0]; ul.appendChild(mark(li, x[0])); });
     }
     if (qs.length) {
@@ -1591,7 +1592,11 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     }
     Object.keys(sideNow).forEach((t) => { sideSeen[t] = 1; });
     el.hidden = !body.childNodes.length || /完$|七窟/.test(when.textContent); /* not on the cover or an end card */
-    if (!el.hidden && !first) sidePeek();
+    /* slide out only for something that matters (a task from him, a new question). An ordinary change of goal just lights the dot on the tab. */
+    if (!el.hidden && !first) {
+      if (fresh) sidePeek();
+      else if (freshGoal && $('side').classList.contains('shut')) $('sideTab').classList.add('new');
+    }
   }
   function sideOpen(open) { $('side').classList.toggle('shut', !open); $('sideTab').setAttribute('aria-expanded', open ? 'true' : 'false'); if (open) $('sideTab').classList.remove('new'); }
   /* something changed: slide out for a few seconds, then fold away again unless the player keeps it open */
