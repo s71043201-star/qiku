@@ -1634,6 +1634,9 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     return cache[key];
   }
   let cur = 0, curKey = null, artToken = 0;
+  /* the picture that has finished loading and been swapped in, and when: the cross-fade takes a moment after that */
+  let shownKey = null, shownAt = 0;
+  const settled = (key) => shownKey === key && performance.now() - shownAt > 620;
   const FLICKER = ['ward', 'boiler_door', 'boiler_door_n', 'chen_young']; /* pictures whose light flickers by CSS alone (the ceiling now has drawn frames, see ANIM) */
   function fx(name) {
     artEl.classList.remove('fx-shock');
@@ -1650,6 +1653,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
     birdsUpdate();
     humUpdate();
     hideFrames();
+    shownKey = null; /* until the new picture is really on screen, no eye or mouth frame may be laid over it */
     const token = ++artToken;
     if (!key) { imgs[0].classList.remove('on'); imgs[1].classList.remove('on'); fx(null); return; }
     load(key).then((src) => {
@@ -1662,6 +1666,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
         hide.classList.add('on');
         show.classList.remove('on');
         cur = 1 - cur;
+        shownKey = key; shownAt = performance.now();
         fx(effect || null);
         animStart(key);
       };
@@ -1834,7 +1839,7 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
   }
   (function idleBlink() {
     setTimeout(() => {
-      if (curKey && BLINK[curKey] && !document.hidden) blink(BLINK[curKey], 0);
+      if (curKey && BLINK[curKey] && settled(curKey) && !document.hidden) blink(BLINK[curKey], 0);
       idleBlink();
     }, 2600 + Math.random() * 3800);
   })();
@@ -1860,7 +1865,9 @@ button:focus-visible { outline: 2px solid var(--paper); outline-offset: 2px; }
       if (curKey !== forKey || token !== talkToken) return;
       mouthImg.src = src;
       try { if (mouthImg.decode) await mouthImg.decode(); } catch (e) { /* ignore */ }
-      if (curKey !== forKey || token !== talkToken) return;
+      /* wait for the face itself: its mouth must never show on the picture that is still fading out */
+      for (let k = 0; k < 80 && !settled(forKey); k++) { await sleep(50); if (curKey !== forKey || token !== talkToken) return; }
+      if (curKey !== forKey || token !== talkToken || !settled(forKey)) return;
       clipMouth(forKey);
       mouthImg.classList.add('on');
     });
