@@ -13,7 +13,9 @@ CLIPS = {'n_knock3': ('人敲三', -34, -22), 'n_knock4': ('鬼敲四', -42, -34
          # the second night's title card
          'n_roll1': ('念到名字的人', -34, -22), 'n_roll2': ('要答，有', -42, -34),
          # the third night's
-         'n_sea1': ('她每天都在看海', -34, -22), 'n_sea2': ('窗外，沒有海', -42, -34)}
+         'n_sea1': ('她每天都在看海', -34, -22), 'n_sea2': ('窗外，沒有海', -42, -34),
+         # the fourth night's
+         'n_seven1': ('這是你，第七次來了', -34, -22), 'n_seven2': ('前六次，你都沒有撐到十五號', -42, -34)}
 VOICES = ['zh-TW-YunJheNeural', 'zh-CN-YunjianNeural']  # Taiwan voice first, fallback if it fails
 
 
